@@ -1,0 +1,1746 @@
+% ============================================================================
+% oneearth.sty — shared style for the One Earth and Space Sciences Book project
+%
+% All packages, theorem environments and macros live here. Chapter files must
+% not load packages or define macros: if you need something new, add it here
+% and document it in CONTRIBUTING.md.
+%
+% Language: set \booklang before loading (default en). UI strings and part
+% titles live in styles/lang/<lang>.tex. Chapter bodies for non-English
+% languages live under parts/<year>/<lang>/ (see \ominput / \ominputsol).
+% ============================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{oneearth}[2026/10/22 v0.1 One Earth and Space Sciences Book common style]
+
+% ----------------------------------------------------------------------------
+% Language selection (default: English)
+% ----------------------------------------------------------------------------
+\providecommand{\booklang}{en}
+
+% ----------------------------------------------------------------------------
+% Core packages
+% ----------------------------------------------------------------------------
+% Engine / script detection. Hindi editions use Devanagari and must be built
+% with XeLaTeX (or LuaLaTeX); pdfTeX cannot load OpenType Devanagari fonts.
+% Other languages stay on the historical pdfTeX path (T1 + lmodern).
+\RequirePackage{iftex}
+\edef\om@booklang@exp{\booklang}%
+\def\om@lang@fr{fr}%
+\def\om@lang@nl{nl}%
+\def\om@lang@es{es}%
+\def\om@lang@pt{pt}%
+\def\om@lang@id{id}%
+\def\om@lang@hi{hi}%
+\def\om@lang@ar{ar}%
+\newif\ifom@hindi
+\newif\ifom@arabic
+\ifx\om@booklang@exp\om@lang@hi
+  \om@hinditrue
+\fi
+\ifx\om@booklang@exp\om@lang@ar
+  \om@arabictrue
+\fi
+
+\ifom@hindi
+  \ifPDFTeX
+    \PackageError{oneearth}{%
+      Hindi editions require XeLaTeX (or LuaLaTeX).\MessageBreak
+      Use: xelatex \jobname.tex\MessageBreak
+      (or latexmk, which picks XeLaTeX for *_hi.tex)}{Build with XeLaTeX.}%
+  \fi
+  \RequirePackage{fontspec}%
+  % Bundled under assets/fonts/ so CI and local builds do not depend on
+  % system font packages. Noto Sans Devanagari covers Devanagari + basic Latin.
+  % (Same path as onemath.sty; SI micro µ uses math \mu — see siunitx setup.)
+  %
+  % Noto Sans Devanagari ships Regular and Bold only: no italic, no small
+  % caps. Left undeclared, every \emph and \textsc raised "Font shape
+  % TU/NotoSansDevanagari(0)/m/it undefined" and silently fell back to
+  % upright — so every defined term, marked \emph{term}\index{term} inside a
+  % definition, was typographically invisible in the Hindi PDF. Alias the
+  % missing shapes onto the faces we have, then carry emphasis with WEIGHT,
+  % which is what Devanagari typography does: the script has no italic.
+  \IfFileExists{assets/fonts/NotoSansDevanagari-Regular.ttf}{%
+    \setmainfont{NotoSansDevanagari}[%
+      Path=assets/fonts/,%
+      Extension=.ttf,%
+      UprightFont=*-Regular,%
+      BoldFont=*-Bold,%
+      ItalicFont=*-Regular,%
+      BoldItalicFont=*-Bold,%
+      SmallCapsFont=*-Regular,%
+      Script=Devanagari,%
+    ]%
+  }{%
+    \setmainfont{Noto Sans Devanagari}[Script=Devanagari]%
+  }%
+  % \emph -> bold at the first level, upright at the second (nested emphasis
+  % toggles back, as \em does in Latin scripts). \DeclareEmphSequence is the
+  % supported hook for this; do not \renewcommand\emph, which breaks nesting.
+  \DeclareEmphSequence{\bfseries,\normalfont}%
+  % Table of contents: book.cls sizes the page-number box at \@pnumwidth =
+  % 1.55em, which fits three Latin Modern digits. Noto Sans Devanagari's
+  % digits are wider, so every three-digit entry overflowed by exactly
+  % 1.12782pt -- that single cause accounted for ALL 141 overfull boxes in
+  % the Hindi edition, while every other language sat at zero. Not a prose
+  % problem: the log shows no "Overfull \hbox ... in paragraph" at all, so
+  % Hindi needs no hyphenation patterns here. Widen the box and push the
+  % entry's right margin out by the same amount.
+  \renewcommand{\@pnumwidth}{2.2em}%
+  \renewcommand{\@tocrmarg}{3.2em}%
+\else
+  \ifom@arabic
+    % Arabic is the first right-to-left edition. It needs LuaTeX, not XeTeX:
+    % the bidirectional engine we use is babel's own "bidi=basic", which is
+    % implemented in Lua and therefore does not patch LaTeX internals the way
+    % the xetex "bidi" package does. That matters here because this stack
+    % leans on tcolorbox[most], tikz, pgfplots, circuitikz and hyperref, all
+    % of which "bidi" is known to fight with. See the babel block below for
+    % the four fixes the combination still needs.
+    \ifLuaTeX\else
+      \PackageError{oneearth}{%
+        Arabic editions require LuaLaTeX.\MessageBreak
+        Use: lualatex \jobname.tex\MessageBreak
+        (or latexmk, which picks LuaLaTeX for *_ar.tex)}{Build with LuaLaTeX.}%
+    \fi
+    \RequirePackage{fontspec}%
+  \else
+    \ifPDFTeX
+      \RequirePackage[T1]{fontenc}%
+      \RequirePackage[utf8]{inputenc}%
+      \RequirePackage{lmodern}%
+    \fi
+  \fi
+\fi
+\RequirePackage{microtype}
+% microtype letterspacing (\textls) is not implemented for XeTeX; Hindi
+% editions use XeLaTeX for Devanagari. Provide a no-op so the cover wordmark
+% and branded header still compile (tracking is cosmetic).
+\ifXeTeX
+  \DeclareRobustCommand{\textls}[2][]{#2}%
+\fi
+\RequirePackage[a4paper,inner=2.2cm,outer=2.2cm,top=2.4cm,bottom=2.6cm,headheight=14pt]{geometry}
+
+% babel: only for non-English editions (keeps English builds unchanged).
+% Compare expanded token lists so \newcommand{\booklang}{fr} matches.
+% Load language babel only when the .ldf is installed; UI strings still
+% come from styles/lang/<lang>.tex either way.
+% Hindi: no babel (no babel-hindi in our stack); UI strings from
+% styles/lang/hi.tex and colon-safe labels without active characters.
+% shorthands=off: French (and Dutch/Spanish/Portuguese) babel makes characters
+% such as ":" active for punctuation spacing. Our labels use colons throughout
+% (type:year:slug:name) and cleveref cannot parse active characters in
+% label names — CI with full TeX Live would fail at the first \cref.
+% French/Dutch sources already use ~ before :;!? for spacing.
+\ifx\om@booklang@exp\om@lang@fr
+  \IfFileExists{french.ldf}{%
+    \RequirePackage[french,shorthands=off]{babel}%
+  }{%
+    \PackageWarning{oneearth}{%
+      french.ldf not found; building French without babel.
+      Install texlive-lang-french for hyphenation}%
+  }%
+\fi
+\ifx\om@booklang@exp\om@lang@nl
+  \IfFileExists{dutch.ldf}{%
+    \RequirePackage[dutch,shorthands=off]{babel}%
+  }{%
+    \PackageWarning{oneearth}{%
+      dutch.ldf not found; building Dutch without babel.
+      Install texlive-lang-european (or babel-dutch) for hyphenation}%
+  }%
+\fi
+
+\ifx\om@booklang@exp\om@lang@es
+  \IfFileExists{spanish.ldf}{%
+    \RequirePackage[spanish,es-noshorthands,shorthands=off]{babel}%
+    % babel-spanish redefines \% to auto-insert a thin space; its
+    % \lastskip probe is fatal after a math \, (mu-glue), and the
+    % sources set the space explicitly ($t\,\%$, as in fr/nl).
+    \spanishplainpercent
+  }{%
+    \PackageWarning{oneearth}{%
+      spanish.ldf not found; building Spanish without babel.
+      Install texlive-lang-spanish for hyphenation}%
+  }%
+\fi
+\ifx\om@booklang@exp\om@lang@pt
+  \IfFileExists{brazilian.ldf}{%
+    \RequirePackage[brazilian,shorthands=off]{babel}%
+  }{%
+    \IfFileExists{portuguese.ldf}{%
+      \RequirePackage[portuguese,shorthands=off]{babel}%
+    }{%
+      \IfFileExists{portuges.ldf}{%
+        \RequirePackage[portuges,shorthands=off]{babel}%
+      }{%
+        \PackageWarning{oneearth}{%
+          brazilian/portuguese.ldf not found; building Portuguese without babel.
+          Install texlive-lang-portuguese for hyphenation}%
+      }%
+    }%
+  }%
+\fi
+
+% Indonesian: babel-indonesian declares no shorthands, no active characters
+% and no command redefinitions (its "extras" hook is empty), so neither the
+% babel-spanish \% trap nor any of the Hindi/Arabic script work applies here.
+% shorthands=off is kept only for the house reason: our labels carry colons.
+% The engine stays pdfTeX and hyphenation comes from hyph-id through babel.
+\ifx\om@booklang@exp\om@lang@id
+  \IfFileExists{bahasai.ldf}{%
+    \RequirePackage[bahasai,shorthands=off]{babel}%
+  }{%
+    \IfFileExists{indonesian.ldf}{%
+      \RequirePackage[indonesian,shorthands=off]{babel}%
+    }{%
+      \PackageWarning{oneearth}{%
+        bahasai/indonesian.ldf not found; building Indonesian without babel.
+        Install texlive-lang-other (babel-indonesian) for hyphenation}%
+    }%
+  }%
+\fi
+
+% ----------------------------------------------------------------------------
+% Arabic: right-to-left, via babel's Lua bidi engine.
+%
+% "layout=graphics" is load-bearing, not cosmetic. Without it every pgfpicture
+% -- which includes the frame of every tcolorbox, i.e. every statement
+% environment in the series -- is drawn mirrored about the picture origin, so
+% the coloured box lands beside its own text, off the page. babel's own patch
+% (luababel.def, \bbl@pictsetdir) typesets pictures left-to-right and then
+% re-applies RTL at each tikz node, which is exactly what figures need: the
+% drawing coordinates stay untouched and only the node text reads RTL.
+%
+% Four more fixes live after the packages load; see "Arabic runtime fixes"
+% below.
+% ----------------------------------------------------------------------------
+\ifom@arabic
+  % layout=tabular is the second load-bearing one. babel's bidi=basic
+  % implements the Unicode algorithm's W1-W7 and N1-N2 but NOT N0, the paired
+  % bracket rule, so a table cell like "$V$ (\unit{mL})" ended with its
+  % closing parenthesis taking the paragraph direction: the cell rendered
+  % "(mLV (", with two opening brackets and none closing. \babelsublr around
+  % the cell does not help -- the direction is decided for the cell box.
+  % layout=tabular fixes the cells and, correctly for a right-to-left book,
+  % orders the columns right to left. Prose is unaffected: a parenthesised
+  % Latin run inside an Arabic sentence already resolved correctly, because
+  % there the closing bracket has following context to key on.
+  \RequirePackage[bidi=basic,layout=graphics.tabular]{babel}%
+  % Table of contents. Arabic prose uses ASCII digits, so this looked like it
+  % would not be needed -- but it is: Noto Naskh Arabic's ASCII digits are
+  % themselves wider than Latin Modern's, and every three-digit contents entry
+  % overflowed \@pnumwidth by 1.39063pt. That single cause produced 147 of the
+  % 149 overfull boxes in the first Arabic build, against 0 for English; the
+  % log said "detected at line", i.e. a box, not "in paragraph", so this is not
+  % a hyphenation problem and Arabic needs no patterns here either.
+  \renewcommand{\@pnumwidth}{2.2em}%
+  \renewcommand{\@tocrmarg}{3.2em}%
+  \babelprovide[import,main]{arabic}%
+  % Two bundled STATIC faces, cut from the Noto Naskh Arabic variable font at
+  % wght 400 and 700. Noto Naskh is a book face and these instances carry the
+  % full Arabic block AND full ASCII (95/95), which matters because the prose
+  % is full of parentheses, ASCII digits and Latin symbols -- the Noto Naskh
+  % statics published upstream have no ASCII at all, not even "(", which is
+  % why the variable font was bundled originally.
+  %
+  % DO NOT go back to instancing the variable font at run time
+  % (RawFeature={axis={wght=...}} or instance=Bold). luaotfload's variable
+  % instancing SEGFAULTS LuaHBTeX 1.24 on musl libc, which is what CI runs
+  % (ghcr.io/xu-cheng/texlive-full is Alpine). It killed the Arabic Book 5
+  % release build at page 308 with no error in the log at all, while the same
+  % engine on glibc built it perfectly -- so a local build proves nothing
+  % here. Any axis value crashed, including wght=400, the font's own default.
+  % The instances were cut once, offline:
+  %
+  %   python3 -c "from fontTools.ttLib import TTFont; \
+  %     from fontTools.varLib import instancer; \
+  %     f=TTFont('NotoNaskhArabic-VF.ttf'); \
+  %     instancer.instantiateVariableFont(f,{'wght':700},inplace=True, \
+  %       updateFontNames=True).save('NotoNaskhArabic-Bold.ttf')"
+  %
+  % NotoNaskhArabic-VF.ttf is kept beside them ONLY as the source for that
+  % command. Nothing loads it, and nothing should. Re-running the command
+  % reproduces the committed faces exactly apart from the head-table
+  % timestamp, so compare glyphs and metrics, not md5sums.
+  %
+  % Arabic has no italic and no small caps; left undeclared, the bold shape
+  % comes out undefined and every \emph{term}\index{term} -- the series'
+  % marker for a defined term -- is typographically invisible, exactly as it
+  % was in Hindi before its fix.
+  \IfFileExists{assets/fonts/NotoNaskhArabic-Regular.ttf}{%
+    \babelfont{rm}[%
+      Path=assets/fonts/,%
+      Extension=.ttf,%
+      UprightFont=*-Regular,%
+      BoldFont=*-Bold,%
+      ItalicFont=*-Regular,%
+      BoldItalicFont=*-Bold,%
+      SmallCapsFont=*-Regular,%
+      Script=Arabic,%
+    ]{NotoNaskhArabic}%
+  }{%
+    \babelfont{rm}[Script=Arabic]{Noto Naskh Arabic}%
+  }%
+  % Emphasis by weight, as in the Hindi edition: the script has no italic
+  % tradition. \DeclareEmphSequence is the supported hook; do not
+  % \renewcommand\emph, which breaks nesting.
+  \DeclareEmphSequence{\bfseries,\normalfont}%
+\fi
+
+
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{amsthm}
+\RequirePackage{mathtools}
+\RequirePackage{enumitem}
+\RequirePackage{graphicx}
+\RequirePackage{tikz}
+\RequirePackage{pgfplots}
+\pgfplotsset{compat=1.18}
+% Every figdata/out/*.dat table has a header row (figdata/_table.py
+% write_table). Say so, so pgfplots does not guess: newer pgfplots read
+% "ddg eeA eeB eeC" as numbers and broke the release build.
+\pgfplotsset{table/header=has colnames}
+\usepgfplotslibrary{fillbetween}
+\usetikzlibrary{arrows.meta,calc,angles,quotes,patterns}
+% Figures use path decorations, relative positioning, intersections,
+% geometric shapes, fitted groups, and layered backgrounds.
+\usetikzlibrary{decorations.pathmorphing,decorations.markings,positioning,intersections}
+\usetikzlibrary{shapes.geometric,shapes.misc,fit,backgrounds,matrix}
+% Units: \qty{3.5}{m/s}, \unit{kW.h}, \num{6.02e23}. list/range separators in
+% text mode so they inherit the surrounding font.
+\RequirePackage{siunitx}
+\sisetup{per-mode=symbol, output-decimal-marker={.}, range-units=single}
+% Hindi (XeTeX + Noto Sans Devanagari): siunitx v3 injects Unicode µ (U+00B5)
+% and Ω (U+2126) under XeTeX; those glyphs are absent from the Devanagari face.
+% Redeclare prefixes/units with math symbols (math-micro options were removed in v3).
+% The same holds for Arabic (LuaTeX + Noto Naskh Arabic): U+00B5, U+2126,
+% U+03BC and U+03A9 are all absent from that face too, so both Unicode-engine
+% editions need the patch and the Latin pdfTeX editions need none of it.
+\newif\ifom@unicodeface
+\ifom@hindi\om@unicodefacetrue\fi
+\ifom@arabic\om@unicodefacetrue\fi
+\ifom@unicodeface
+  \AtBeginDocument{%
+    \DeclareSIPrefix{\micro}{\ensuremath{\mu}}{-6}%
+    \DeclareSIUnit{\ohm}{\ensuremath{\Omega}}%
+  }%
+  % The per-mil sign: \textperthousand prints U+2030, which neither face has,
+  % so the delta-18-O values of Book 4 (ch. 11) lost their unit in the hi/ar
+  % probes ("Missing character: There is no ‰", exit 0). Take the glyph from
+  % Latin Modern, which TeX Live ships as OpenType (2026-10-06).
+  \newfontfamily\om@latinsym{lmroman10-regular.otf}%
+  \AtBeginDocument{\renewcommand{\textperthousand}{{\om@latinsym\symbol{"2030}}}}%
+\fi
+% Unbreakable in-text figure block: keeps a picture and its caption line
+% on the same page. Use in place of "center" around tikzpicture figures.
+% The [b] alignment matters: with the default [c] the minipage's huge box
+% *depth* is invisible to the page breaker beyond \maxdepth, so a figure at
+% the bottom of a page silently overprints the footer (page number over the
+% caption). Bottom alignment keeps the whole box above the baseline.
+\newenvironment{omfigure}
+  {\par\medskip\noindent\begin{minipage}[b]{\linewidth}\centering}
+  {\end{minipage}\par\medskip}
+
+% Raster illustrations live under assets/ (and assets/book1/ for primary
+% volumes). Chapters include them with \omimg{path}{width}{caption}.
+\graphicspath{{assets/}{assets/book1/}}
+% #1 = file (with or without assets/ prefix), #2 = width, #3 = caption
+\newcommand{\omimg}[3]{%
+  \begin{omfigure}%
+    \includegraphics[width=#2]{#1}%
+    \par\smallskip{\small #3}%
+  \end{omfigure}%
+}
+
+% Shared axis style for in-text figures: use with \begin{axis}[omaxis, ...].
+\pgfplotsset{
+  omaxis/.style={
+    axis lines=middle,
+    tick label style={font=\small},
+    label style={font=\small},
+    xlabel={$x$}, ylabel={$y$},
+    xlabel style={below right}, ylabel style={above left},
+    samples=100,
+  },
+}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{imakeidx}
+\makeindex[intoc]
+\RequirePackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\RequirePackage[nameinlink,capitalize]{cleveref}
+\RequirePackage{etoolbox}
+
+% ----------------------------------------------------------------------------
+% Arabic runtime fixes. These must come AFTER mathtools, tikz, pgfplots and
+% tcolorbox are loaded, because each one repairs an interaction with them.
+% All four were found by building the real chapters, not by reading docs; a
+% green log does not reveal any of them, only the rendered page does.
+% ----------------------------------------------------------------------------
+\ifom@arabic
+  % 1. babel vs mathtools. luababel.def does \bbl@sreplace\intertext@{...}
+  %    when an RTL language is provided. mathtools has already redefined
+  %    \intertext@ in expl3 syntax, and \bbl@sreplace re-tokenises that body
+  %    WITHOUT expl3 catcodes, so \l_MT_below_intertext_sep comes back as \l
+  %    followed by garbage. Every single align/gather in the book then fails
+  %    with "Undefined control sequence". Save mathtools' meaning here and put
+  %    it back after babel's own \AtBeginDocument patch has run (ours is
+  %    declared later, so it runs later). \intertext is used nowhere in the
+  %    sources, so losing babel's baseline tweak for it costs nothing.
+  \let\om@saved@intertext\intertext@
+  \AtBeginDocument{\let\intertext@\om@saved@intertext}%
+  % 2. Whole pictures are typeset left-to-right. layout=graphics already does
+  %    this for pgfpicture, but pgfplots places its axis label and tick label
+  %    rows outside the tikz-node path that babel re-orients, so an axis came
+  %    out with its x labels mirrored and shifted a full picture-width left.
+  %    Use babel's OWN \bbl@textdir, not the raw \textdir primitive: the
+  %    primitive changes TeX's direction but not the attribute babel's Lua
+  %    filter reads, so the filter still walked the picture as RTL and died
+  %    with "babel-bidi-basic.lua:345: attempt to index a nil value" on the
+  %    first pgfplots mark glyph. Forcing it properly fixes the whole
+  %    node, so Arabic node text reads correctly.
+  \AddToHook{env/tikzpicture/before}{\leavevmode\begingroup\bbl@textdir\z@}%
+  \AddToHook{env/tikzpicture/after}{\endgroup}%
+  %    modiagram's MOdiagram is not reached by the tikzpicture hook: every MO
+  %    diagram came out mirrored (correlation lines flying off to the right,
+  %    labels "*σ1" for σ*1s, side-by-side diagrams overlapping), with a clean
+  %    log (Arabic chemistry Book 3 agent, 2026-10-06). Same cure.
+  \AddToHook{env/MOdiagram/before}{\leavevmode\begingroup\bbl@textdir\z@}%
+  \AddToHook{env/MOdiagram/after}{\endgroup}%
+  %    The character tables (omchartable) set an array in INLINE math, which
+  %    the RTL paragraph reversed inside every cell: "C_{2v}" printed "2v C",
+  %    "A_1" printed "1 A" (Arabic chemistry Book 4, ch. 4; found on the rendered
+  %    page by the coordinator, 2026-10-07; no gate or log sees it).
+  \AddToHook{env/omchartable/before}{\begingroup\bbl@textdir\z@\bbl@pardir\z@}%
+  \AddToHook{env/omchartable/after}{\endgroup}%
+  % 3. ... but tcolorbox builds its content INSIDE that left-to-right picture
+  %    scope, so without this the Arabic inside every definition, theorem and
+  %    exercise box came out in reversed word order. Put the box body back to
+  %    RTL.
+  \tcbset{before upper={\pardir TRT\textdir TRT}}%
+  % 4. pgfplots axis labels and titles are Arabic prose and must read RTL
+  %    inside the otherwise left-to-right picture.
+  \pgfplotsset{every axis/.append style={%
+    label style={execute at begin node={\pardir TRT\textdir TRT}},%
+    title style={execute at begin node={\pardir TRT\textdir TRT}},%
+  }}%
+  % 5. LuaTeX overflows a heap buffer when a box report (underfull/overfull)
+  %    prints a glyph whose name is a raw control byte, e.g. cmsy's \times.
+  %    glibc hides it; musl, i.e. the Alpine CI image, segfaults, which killed
+  %    the Arabic Book 1 release build at page 377 with nothing in the log.
+  %    The Lua file wraps luaotfload's glyph_info callback to hand those
+  %    bytes back already escaped; it explains the bug in full. Loaded at
+  %    \begin{document} so that luaotfload has registered the callback.
+  \AtBeginDocument{\directlua{dofile('styles/oneearth-glyphinfo.lua')}}%
+\fi
+
+\setlist[enumerate]{itemsep=1pt,topsep=3pt}
+\setlist[itemize]{itemsep=1pt,topsep=3pt}
+
+% ----------------------------------------------------------------------------
+% Language strings (theorem names, cover, part titles, …)
+% ----------------------------------------------------------------------------
+\input{styles/lang/\booklang.tex}
+
+% Lookup structural string defined in the lang file via \@namedef{omstr@KEY}.
+\newcommand{\omstr}[1]{\csname omstr@#1\endcsname}
+
+% ----------------------------------------------------------------------------
+% Language-aware content paths
+%
+% \ominput{grade-1}{01-counting-to-20}
+%   → parts/grade-1/<lang>/01-counting-to-20.tex if it exists
+%   → else parts/grade-1/01-counting-to-20.tex (English canonical)
+%
+% \ominputsol{grade-1}{01-counting-to-20} — same rule under solutions/
+% ----------------------------------------------------------------------------
+\newcommand{\ominput}[2]{%
+  \IfFileExists{parts/#1/\booklang/#2.tex}%
+    {\input{parts/#1/\booklang/#2}}%
+    {\input{parts/#1/#2}}%
+}
+\newcommand{\ominputsol}[2]{%
+  \IfFileExists{parts/#1/solutions/\booklang/#2.tex}%
+    {\input{parts/#1/solutions/\booklang/#2}}%
+    {\input{parts/#1/solutions/#2}}%
+}
+
+% ----------------------------------------------------------------------------
+% Page layout details
+% ----------------------------------------------------------------------------
+% Chapters/parts open on any page (class option "openany" in main.tex);
+% also drop the forced blank page at the front/back matter boundaries.
+\patchcmd{\mainmatter}{\cleardoublepage}{\clearpage}{}{}
+\patchcmd{\backmatter}{\cleardoublepage}{\clearpage}{}{}
+
+% The book has more than 99 chapters: widen the number boxes in the table
+% of contents so three-digit chapter numbers (and their section numbers,
+% like "102.4") do not run into the titles.
+\patchcmd{\l@chapter}{1.5em}{2.3em}{}{}
+\renewcommand*\l@section{\@dottedtocline{1}{2.3em}{3.2em}}
+
+% Running headers: small italics, no uppercase, so long chapter titles fit.
+\RequirePackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\thepage\quad{\small\itshape\nouppercase{\leftmark}}}
+\fancyhead[RO]{{\small\itshape\nouppercase{\rightmark}}\quad\thepage}
+\renewcommand{\headrulewidth}{0.2pt}
+
+% ----------------------------------------------------------------------------
+% Colors (sober)
+% ----------------------------------------------------------------------------
+\definecolor{omDef}{RGB}{0,84,147}      % definitions: blue
+\definecolor{omThm}{RGB}{150,20,30}     % theorems: dark red
+\definecolor{omProp}{RGB}{190,90,20}    % propositions/lemmas/corollaries: orange
+\definecolor{omMeth}{RGB}{20,110,60}    % methods: green
+\definecolor{omExo}{RGB}{80,80,80}      % exercises: gray
+
+% ----------------------------------------------------------------------------
+% One Course brand (title page and shared product theme — see THEME.md)
+% ----------------------------------------------------------------------------
+\definecolor{ocMint}{HTML}{06D6A0}      % brand quad: mint
+\definecolor{ocYellow}{HTML}{FFD166}    % brand quad: yellow
+\definecolor{ocRed}{HTML}{EF476F}       % brand quad: red
+\definecolor{ocBlue}{HTML}{118AB2}      % brand quad: blue
+\definecolor{ocInk}{HTML}{1F2430}       % near-black text on light grounds
+\colorlet{ocPaleBlue}{ocBlue!14!white}  % pale blue-gray ground / band tint
+\colorlet{ocDarkBlue}{ocBlue!80!black}  % titles and the "1" of the rosette
+
+% \ocQuadLine{x0}{x1}{y}{h}: horizontal bar from x0 to x1 at height y,
+% thickness h, split into four equal segments in the brand quad colors.
+% Coordinates in the surrounding tikzpicture's units (cm on the cover).
+\newcommand{\ocQuadLine}[4]{%
+  \pgfmathsetmacro{\ocqSeg}{(#2-#1)/4}%
+  \fill[ocMint]   (#1,#3) rectangle ({#1+\ocqSeg},{#3+#4});
+  \fill[ocYellow] ({#1+\ocqSeg},#3) rectangle ({#1+2*\ocqSeg},{#3+#4});
+  \fill[ocRed]    ({#1+2*\ocqSeg},#3) rectangle ({#1+3*\ocqSeg},{#3+#4});
+  \fill[ocBlue]   ({#1+3*\ocqSeg},#3) rectangle (#2,{#3+#4});}
+
+% \ocRosette{x}{y}{R}{pt}: the One Course rosette logo centered at (x,y),
+% radius R cm, with the "1" set at pt points. Four quadrant wedges (mint on
+% top, yellow left, red bottom, blue right) separated by white diagonals,
+% around a white core circle. The diagonal line width scales with R.
+\newcommand{\ocRosette}[4]{%
+  \pgfmathsetmacro{\ocrCut}{#3*1.02}%
+  \pgfmathsetlengthmacro{\ocrLW}{#3*1.4}%
+  \fill[ocMint]   (#1,#2) -- ([shift={(#1,#2)}]45:#3)
+    arc[start angle=45, end angle=135, radius=#3] -- cycle;
+  \fill[ocYellow] (#1,#2) -- ([shift={(#1,#2)}]135:#3)
+    arc[start angle=135, end angle=225, radius=#3] -- cycle;
+  \fill[ocRed]    (#1,#2) -- ([shift={(#1,#2)}]225:#3)
+    arc[start angle=225, end angle=315, radius=#3] -- cycle;
+  \fill[ocBlue]   (#1,#2) -- ([shift={(#1,#2)}]315:#3)
+    arc[start angle=315, end angle=405, radius=#3] -- cycle;
+  \draw[white, line width=\ocrLW]
+    ([shift={(#1,#2)}]45:\ocrCut) -- ([shift={(#1,#2)}]225:\ocrCut);
+  \draw[white, line width=\ocrLW]
+    ([shift={(#1,#2)}]135:\ocrCut) -- ([shift={(#1,#2)}]315:\ocrCut);
+  \fill[white] (#1,#2) circle ({#3*0.58});
+  \node[text=ocDarkBlue, font=\fontsize{#4}{#4}\selectfont\bfseries]
+    at (#1,#2) {1};}
+
+% ----------------------------------------------------------------------------
+% Branded running header (opt-in: a book's entry file calls \ombrandheader
+% after loading this package; see one_physics_book_5_university_year_3.tex).
+%
+% Even (left) pages carry the brand and the book title, on two lines:
+%
+%     .           (rosette) ONE-COURSE.COM            .
+%     116  Chapter 11. Sequences     Book 5: ... -- Year 3
+%     ----------------------------------------------------
+%
+% Odd (right) pages keep the plain navigation line (section mark + page
+% number): the brand travels with the chapter mark, and leaving the odd side
+% clear is what lets even the longest section titles print unclipped. Their
+% empty first header line keeps the rule level across a spread.
+%
+% The rosette is drawn once into a box, not on every page. The wordmark sits
+% two font steps below the running mark: all-caps bold sans reads optically
+% larger than the italic serif mark at equal size.
+% ----------------------------------------------------------------------------
+\newsavebox{\omHeadRosette}
+\AtBeginDocument{\savebox{\omHeadRosette}{%
+  \begin{tikzpicture}[baseline=-0.5ex]
+    \ocRosette{0}{0}{0.135}{3.1}%
+  \end{tikzpicture}}}
+% The brand mark links out to the site. \href would recolor it (hyperref's
+% urlcolor), so the ink is restated inside the link.
+\newcommand{\omSiteURL}{https://one-course.com}
+\newcommand{\omHeadBrand}{%
+  \href{\omSiteURL}{\textcolor{ocInk}{\usebox{\omHeadRosette}\hspace{0.3em}%
+    {\scriptsize\sffamily\bfseries\textls[40]{ONE-COURSE.COM}}}}}
+\newcommand{\omHeadBook}{{\small\bookline}}
+
+% The chapter mark links back to its own line in the table of contents; both
+% halves of the mechanism are armed by \ombrandheader, so books that do not
+% opt in keep the stock marks.
+%
+% Anchors: hyperref hands \contentsline the destination name of the entry it is
+% typesetting (#4, e.g. "chapter.11" or "appendix.A"). Wrapping it lets us drop
+% a target, "toc.<that name>", on the contents line itself. \Hy@raisedlink keeps
+% the anchor from displacing the line.
+%
+% Marks: \@currentHref holds the current chapter's destination name at
+% \chaptermark time, so the mark carries the anchor alongside the title
+% (\omTocMark{anchor}{title}), and the header builds the link at shipout -- on
+% whichever chapter owns the page.
+%
+% The header must NOT put the link inside \truncate: truncate typesets its
+% argument into a box to measure it, and a hyperlink opened inside a box that
+% is then discarded leaks pdfTeX's link stack ("TeX capacity exceeded [pdf link
+% stack size=10]"). So the mark is first split into anchor and title, the title
+% alone is truncated, and the finished box is wrapped in one link.
+\newcommand{\omTocMark}[2]{#2}          % plain text outside the header
+\newcommand{\om@anchor}{}
+\newcommand{\om@title}{}
+% A mark without \omTocMark (Contents, Index, the solutions appendix) used to
+% be typeset raw here, outside the capped box, and on even pages pushed the
+% book line onto a second line (found 2026-10-02, chemistry Book 1). The mark
+% is now run in a discarded box; when it carries no \omTocMark, the plain mark
+% itself becomes the (capped) title.
+\newcommand{\om@hit}{0}
+\newcommand{\om@splitmark}[1]{%
+  \begingroup
+    \def\omTocMark##1##2{\gdef\om@anchor{##1}\gdef\om@title{##2}\gdef\om@hit{1}}%
+    \gdef\om@anchor{}\gdef\om@title{}\gdef\om@hit{0}%
+    \setbox0\hbox{#1}%
+  \endgroup
+  \ifnum\om@hit=0 \gdef\om@title{#1}\fi}
+\newcommand{\om@tocbacklinks}{%
+  \AtBeginDocument{%
+    \let\om@orig@contentsline\contentsline
+    \renewcommand{\contentsline}[4]{%
+      \Hy@raisedlink{\hypertarget{toc.##4}{}}%
+      \om@orig@contentsline{##1}{##2}{##3}{##4}}%
+  }%
+  \renewcommand{\chaptermark}[1]{%
+    \markboth{\protect\omTocMark{\@currentHref}{%
+      \ifnum\c@secnumdepth>\m@ne\if@mainmatter
+        \@chapapp\ \thechapter. \ %
+      \fi\fi ##1}}{}}%
+  % Same for the section mark, which is what the odd pages show.
+  \renewcommand{\sectionmark}[1]{%
+    \markright{\protect\omTocMark{\@currentHref}{%
+      \ifnum\c@secnumdepth>\z@ \thesection. \ \fi ##1}}}%
+}
+\newcommand{\omHeadMark}[1]{{\small\itshape\nouppercase{#1}}}
+% On even pages the chapter mark shares its line with the book title, and some
+% chapter titles are long ("Product Measures, Fubini, Change of Variables"):
+% cap the mark at whatever width the book title leaves, ending it with an
+% ellipsis, so the two never touch.
+\RequirePackage{truncate}
+\newlength{\omHeadBookWd}
+\newcommand{\omHeadMarkCapped}[1]{%
+  \settowidth{\omHeadBookWd}{\omHeadBook}%
+  \truncate[\,\dots]{\dimexpr\headwidth-\omHeadBookWd-1.5em\relax}{%
+    \omHeadMark{#1}}}
+% Split the mark, truncate the title, wrap the result in the link to the
+% contents line (nothing linked inside the measured box -- see above).
+\newcommand{\omHeadChapMark}{%
+  \om@splitmark{\leftmark}%
+  \ifx\om@anchor\@empty
+    \omHeadMarkCapped{\om@title}%
+  \else
+    \hyperlink{toc.\om@anchor}{\textcolor{ocInk}{%
+      \omHeadMarkCapped{\om@title}}}%
+  \fi}
+% The section mark, shown on odd pages, links the same way. It has the line to
+% itself, so it needs no width cap.
+\newcommand{\omHeadSectMark}{%
+  \om@splitmark{\rightmark}%
+  \ifx\om@anchor\@empty
+    \omHeadMark{\om@title}%
+  \else
+    \hyperlink{toc.\om@anchor}{\textcolor{ocInk}{\omHeadMark{\om@title}}}%
+  \fi}
+\newcommand{\ombrandheader}{%
+  % The two-line head needs 40.3pt (fancyhdr's own figure); the body block is
+  % unchanged, so page counts do not move.
+  \geometry{headheight=41pt,headsep=12pt}%
+  \om@tocbacklinks
+  \fancyhead[LE]{\parbox[b]{\headwidth}{%
+    \hfill\omHeadBrand\hfill\null\\[2pt]
+    \omHeadChapMark\hfill\omHeadBook}}%
+  \fancyhead[RO]{\parbox[b]{\headwidth}{%
+    \strut\\[2pt]
+    \hfill\omHeadSectMark}}%
+  % Page number at the foot, centered -- which is also where the `plain' style
+  % puts it on chapter-opening pages, so every page of the book agrees.
+  \fancyfoot[C]{\thepage}%
+}
+
+% ----------------------------------------------------------------------------
+% Theorem environments
+%
+% amsthm owns numbering, labels and cleveref support; tcolorbox only
+% decorates. All statement environments share one counter, numbered within
+% chapter. Exercises have their own counter.
+%
+% Titles come from styles/lang/<lang>.tex (\omnameDefinition, …).
+% Usage: \begin{theorem}[Monotone convergence]\label{thm:tle:seq:monotone}
+% ----------------------------------------------------------------------------
+\theoremstyle{definition}                 % upright body text, bold heading
+\newtheorem{definition}{\omnameDefinition}[chapter]
+\newtheorem{theorem}[definition]{\omnameTheorem}
+\newtheorem{proposition}[definition]{\omnameProposition}
+\newtheorem{lemma}[definition]{\omnameLemma}
+\newtheorem{corollary}[definition]{\omnameCorollary}
+\newtheorem{method}[definition]{\omnameMethod}
+\newtheorem{example}[definition]{\omnameExample}
+\newtheorem{notation}[definition]{\omnameNotation}
+\theoremstyle{remark}
+\newtheorem{remark}[definition]{\omnameRemark}
+
+\newtheorem{exercise}{\omnameExercise}[chapter]
+% Weekend problem sets ("devoir maison"): one long, structured problem per
+% chapter at university level, with its own counter.
+\newtheorem{problem}{\omnameProblem}[chapter]
+
+% Decoration: colored left rule + light background.
+% "lines before break" forces boxes with no room for their first lines to
+% move to the next page instead of attempting a zero-height first part,
+% which would silently discard any \label written there. (Raised from 3
+% to 5 after a recurrence: a box starting very close to the page bottom
+% could still produce a discarded zero-height first part. If a label that
+% plainly exists still reports as undefined, move it to just before the
+% environment's \end -- the counter is unchanged and the write survives.)
+% The coloured rule marks the edge a reader starts from, so it follows the
+% script: west for the left-to-right editions, east for Arabic, with the
+% asymmetric padding mirrored to match. The two option lists are written out
+% in full rather than assembled from a macro: pgfkeys does not expand a macro
+% while parsing key names, and a \om@statementrule{...} in there is read as
+% one long unknown key ("I do not know the key '/tcb/borderline west=...'").
+\ifom@arabic
+\newcommand{\omdecorate}[2]{%
+  \tcolorboxenvironment{#1}{%
+    enhanced jigsaw, breakable, frame hidden,
+    boxrule=0pt, sharp corners,
+    borderline east={2pt}{0pt}{#2},
+    left=4pt, right=8pt, top=4pt, bottom=4pt,
+    before skip=10pt, after skip=10pt,
+    lines before break=5,
+    colback=#2!4!white}%
+}
+\else
+\newcommand{\omdecorate}[2]{%
+  \tcolorboxenvironment{#1}{%
+    enhanced jigsaw, breakable, frame hidden,
+    boxrule=0pt, sharp corners,
+    borderline west={2pt}{0pt}{#2},
+    left=8pt, right=4pt, top=4pt, bottom=4pt,
+    before skip=10pt, after skip=10pt,
+    lines before break=5,
+    colback=#2!4!white}%
+}
+\fi
+\omdecorate{definition}{omDef}
+\omdecorate{theorem}{omThm}
+\omdecorate{proposition}{omProp}
+\omdecorate{lemma}{omProp}
+\omdecorate{corollary}{omProp}
+\omdecorate{method}{omMeth}
+\omdecorate{exercise}{omExo}
+\omdecorate{problem}{omExo}
+
+% ----------------------------------------------------------------------------
+% Earth and space sciences
+%
+% Formulas and reactions (minerals, weathering, carbonate equilibria): \ce{...}
+% (mhchem, version 4), masked by tools/termlink/protect.py and checked for
+% balance by tools/check_ce_balance.py when they carry an arrow.
+% ----------------------------------------------------------------------------
+\RequirePackage[version=4]{mhchem}
+\ifom@unicodeface\selectchemgreekmapping{default}\fi
+
+% Three-dimensional drawings (block diagrams, the celestial sphere, orbits):
+% \tdplotsetmaincoords{<theta>}{<phi>} then [tdplot_main_coords].
+\RequirePackage{tikz-3dplot}
+\RequirePackage{array}
+\usetikzlibrary{patterns.meta,decorations.pathreplacing,arrows.meta,3d}
+\usepgfplotslibrary{ternary}
+
+% Units used across the series.
+\DeclareSIUnit{\ppm}{ppm}
+\DeclareSIUnit{\ppb}{ppb}
+\DeclareSIUnit{\year}{yr}
+\DeclareSIUnit{\Ma}{Ma}
+\DeclareSIUnit{\Ga}{Ga}
+\DeclareSIUnit{\ka}{ka}
+\DeclareSIUnit{\Myr}{Myr}
+\DeclareSIUnit{\au}{au}
+\DeclareSIUnit{\lightyear}{ly}
+\DeclareSIUnit{\parsec}{pc}
+\DeclareSIUnit{\permil}{\text{\textperthousand}}
+\DeclareSIUnit{\knot}{kn}
+\DeclareSIUnit{\hPa}{hPa}
+
+% ----------------------------------------------------------------------------
+% The aside boxes. Unnumbered, no label, and a defined term is never introduced
+% inside one (\emph{..}\index{..} belongs in a definition): they are asides.
+%
+%   recall     -- "You already know": opens a chapter that builds on a notion
+%                 owned by an earlier chapter (\cref inside the same book) or
+%                 by another volume or series (named in prose, never \cref);
+%                 3-5 lines. Books 1 and 2 never re-teach a notion.
+%   inthefield -- "In the field": what geoscientists do outdoors. Describes
+%                 professional work; the reader is never sent to a quarry, a
+%                 cliff, a cave, a river in flood, or to hammer a rock.
+%   inthelab   -- "In the lab": a laboratory procedure, done by professionals
+%                 or with a teacher; never proposed for home.
+%   history    -- a short history box: who, when, what was found.
+%   dated      -- \begin{dated}{2025} ... \end{dated}: volatile figures (the
+%                 latest CO2 concentration, the warmest year, a record) with
+%                 the year they are given for; each number has a ledger row.
+%   safety     -- observing safely (never look at the Sun; hazards).
+% ----------------------------------------------------------------------------
+\definecolor{omRecall}{RGB}{88,98,120}
+\definecolor{omField}{RGB}{84,122,40}
+\definecolor{omLab}{RGB}{0,118,128}
+\definecolor{omHist}{RGB}{135,96,45}
+\definecolor{omDated}{RGB}{110,70,150}
+\definecolor{omSafe}{RGB}{196,30,40}
+\tcbset{om@aside/.style={%
+  enhanced, breakable, sharp corners=downhill, arc=1.6mm,
+  boxrule=0.5pt, colframe=#1!75!black, colback=#1!4!white,
+  coltitle=white, colbacktitle=#1!75!black,
+  fonttitle=\small\bfseries, toptitle=0.6mm, bottomtitle=0.4mm,
+  left=6pt, right=6pt, top=4pt, bottom=4pt,
+  before skip=10pt, after skip=10pt}}
+\newtcolorbox{recall}{om@aside=omRecall, title={\omnameRecall}}
+\newtcolorbox{inthefield}[1][]{om@aside=omField,
+  title={\omnameInTheField\ifstrempty{#1}{}{\ --- #1}}}
+\newtcolorbox{inthelab}[1][]{om@aside=omLab,
+  title={\omnameInTheLab\ifstrempty{#1}{}{\ --- #1}}}
+\newtcolorbox{history}[1][]{om@aside=omHist,
+  title={\omnameHistory\ifstrempty{#1}{}{\ --- #1}}}
+\newtcolorbox{dated}[1]{om@aside=omDated,
+  title={\omnameDated\ #1}}
+\newtcolorbox{safety}{om@aside=omSafe, title={\omnameSafety}}
+
+% ----------------------------------------------------------------------------
+% Geological time-scale colours (the international chart's colour codes,
+% sources/data_ledger.md row ics:colours): fill a time-scale bar or a map unit
+% of a given age with  fill=icsJurassic  etc.
+% ----------------------------------------------------------------------------
+\definecolor{icsHadean}{HTML}{AE027E}
+\definecolor{icsArchean}{HTML}{F0047F}
+\definecolor{icsProterozoic}{HTML}{F73563}
+\definecolor{icsPhanerozoic}{HTML}{9AD9DD}
+\definecolor{icsPaleozoic}{HTML}{99C08D}
+\definecolor{icsMesozoic}{HTML}{67C5CA}
+\definecolor{icsCenozoic}{HTML}{F2F91D}
+\definecolor{icsCambrian}{HTML}{7FA056}
+\definecolor{icsOrdovician}{HTML}{009270}
+\definecolor{icsSilurian}{HTML}{B3E1B6}
+\definecolor{icsDevonian}{HTML}{CB8C37}
+\definecolor{icsCarboniferous}{HTML}{67A599}
+\definecolor{icsPermian}{HTML}{F04028}
+\definecolor{icsTriassic}{HTML}{812B92}
+\definecolor{icsJurassic}{HTML}{34B2C9}
+\definecolor{icsCretaceous}{HTML}{7FC64E}
+\definecolor{icsPaleogene}{HTML}{FD9A52}
+\definecolor{icsNeogene}{HTML}{FFE619}
+\definecolor{icsQuaternary}{HTML}{F9F97F}
+
+% ----------------------------------------------------------------------------
+% Lithologies: one TikZ style per rock, a pale fill under a black ornament,
+% for sections, columns, block diagrams and map legends:
+%   \fill[lith limestone] (0,0) rectangle (4,1);   \draw[lith shale] ...;
+%   \omlith{limestone}  -- a small legend swatch, on the text baseline.
+% Names: sandstone, shale, limestone, dolomite, conglomerate, evaporite, coal,
+% granite, basalt, gneiss, schist, alluvium, sea (water), ice.
+% The ornaments are uncolored patterns.meta tiles (pattern color sets the ink).
+% ----------------------------------------------------------------------------
+\tikzdeclarepattern{name=om sand, type=uncolored,
+  bounding box={(0,0) and (3mm,3mm)}, tile size={(3mm,3mm)},
+  code={\pgfpathcircle{\pgfpoint{0.6mm}{0.7mm}}{0.18mm}
+        \pgfpathcircle{\pgfpoint{2.1mm}{1.3mm}}{0.18mm}
+        \pgfpathcircle{\pgfpoint{1.2mm}{2.4mm}}{0.18mm}
+        \pgfusepath{fill}}}
+\tikzdeclarepattern{name=om shale, type=uncolored,
+  bounding box={(0,0) and (4mm,1.6mm)}, tile size={(4mm,1.6mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathmoveto{\pgfpoint{0.3mm}{0.4mm}}\pgfpathlineto{\pgfpoint{1.7mm}{0.4mm}}
+        \pgfpathmoveto{\pgfpoint{2.3mm}{1.2mm}}\pgfpathlineto{\pgfpoint{3.7mm}{1.2mm}}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om limestone, type=uncolored,
+  bounding box={(0,0) and (4mm,2.4mm)}, tile size={(4mm,2.4mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathmoveto{\pgfpoint{0mm}{0mm}}\pgfpathlineto{\pgfpoint{4mm}{0mm}}
+        \pgfpathmoveto{\pgfpoint{0mm}{1.2mm}}\pgfpathlineto{\pgfpoint{4mm}{1.2mm}}
+        \pgfpathmoveto{\pgfpoint{1mm}{0mm}}\pgfpathlineto{\pgfpoint{1mm}{1.2mm}}
+        \pgfpathmoveto{\pgfpoint{3mm}{1.2mm}}\pgfpathlineto{\pgfpoint{3mm}{2.4mm}}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om dolomite, type=uncolored,
+  bounding box={(0,0) and (4mm,2.4mm)}, tile size={(4mm,2.4mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathmoveto{\pgfpoint{0mm}{0mm}}\pgfpathlineto{\pgfpoint{4mm}{0mm}}
+        \pgfpathmoveto{\pgfpoint{0mm}{1.2mm}}\pgfpathlineto{\pgfpoint{4mm}{1.2mm}}
+        \pgfpathmoveto{\pgfpoint{0.7mm}{0mm}}\pgfpathlineto{\pgfpoint{1.3mm}{1.2mm}}
+        \pgfpathmoveto{\pgfpoint{2.7mm}{1.2mm}}\pgfpathlineto{\pgfpoint{3.3mm}{2.4mm}}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om conglomerate, type=uncolored,
+  bounding box={(0,0) and (5mm,4mm)}, tile size={(5mm,4mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathellipse{\pgfpoint{1.2mm}{1.1mm}}{\pgfpoint{0.7mm}{0mm}}{\pgfpoint{0mm}{0.5mm}}
+        \pgfpathellipse{\pgfpoint{3.6mm}{2.9mm}}{\pgfpoint{0.6mm}{0.15mm}}{\pgfpoint{-0.1mm}{0.45mm}}
+        \pgfusepath{stroke}
+        \pgfpathcircle{\pgfpoint{3.4mm}{0.8mm}}{0.15mm}
+        \pgfpathcircle{\pgfpoint{1.1mm}{3.1mm}}{0.15mm}
+        \pgfusepath{fill}}}
+\tikzdeclarepattern{name=om evaporite, type=uncolored,
+  bounding box={(0,0) and (3mm,3mm)}, tile size={(3mm,3mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathmoveto{\pgfpoint{0mm}{0mm}}\pgfpathlineto{\pgfpoint{3mm}{3mm}}
+        \pgfpathmoveto{\pgfpoint{0mm}{3mm}}\pgfpathlineto{\pgfpoint{3mm}{0mm}}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om granite, type=uncolored,
+  bounding box={(0,0) and (4mm,4mm)}, tile size={(4mm,4mm)},
+  code={\pgfsetlinewidth{0.35pt}
+        \pgfpathmoveto{\pgfpoint{0.5mm}{1mm}}\pgfpathlineto{\pgfpoint{1.5mm}{1mm}}
+        \pgfpathmoveto{\pgfpoint{1mm}{0.5mm}}\pgfpathlineto{\pgfpoint{1mm}{1.5mm}}
+        \pgfpathmoveto{\pgfpoint{2.5mm}{3mm}}\pgfpathlineto{\pgfpoint{3.5mm}{3mm}}
+        \pgfpathmoveto{\pgfpoint{3mm}{2.5mm}}\pgfpathlineto{\pgfpoint{3mm}{3.5mm}}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om basalt, type=uncolored,
+  bounding box={(0,0) and (4mm,4mm)}, tile size={(4mm,4mm)},
+  code={\pgfsetlinewidth{0.35pt}
+        \pgfpathmoveto{\pgfpoint{0.5mm}{1.5mm}}\pgfpathlineto{\pgfpoint{1mm}{0.6mm}}
+        \pgfpathlineto{\pgfpoint{1.5mm}{1.5mm}}
+        \pgfpathmoveto{\pgfpoint{2.5mm}{3.5mm}}\pgfpathlineto{\pgfpoint{3mm}{2.6mm}}
+        \pgfpathlineto{\pgfpoint{3.5mm}{3.5mm}}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om gneiss, type=uncolored,
+  bounding box={(0,0) and (4mm,2mm)}, tile size={(4mm,2mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathmoveto{\pgfpoint{0mm}{0.6mm}}
+        \pgfpathcurveto{\pgfpoint{1mm}{1.4mm}}{\pgfpoint{3mm}{-0.2mm}}{\pgfpoint{4mm}{0.6mm}}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om schist, type=uncolored,
+  bounding box={(0,0) and (3mm,1.5mm)}, tile size={(3mm,1.5mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathmoveto{\pgfpoint{0.2mm}{0.4mm}}
+        \pgfpathcurveto{\pgfpoint{0.8mm}{0.9mm}}{\pgfpoint{1.4mm}{0.1mm}}{\pgfpoint{2mm}{0.5mm}}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om alluvium, type=uncolored,
+  bounding box={(0,0) and (4mm,3mm)}, tile size={(4mm,3mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathcircle{\pgfpoint{1mm}{0.8mm}}{0.35mm}\pgfusepath{stroke}
+        \pgfpathcircle{\pgfpoint{3mm}{2.2mm}}{0.15mm}
+        \pgfpathcircle{\pgfpoint{2.6mm}{0.6mm}}{0.12mm}
+        \pgfpathcircle{\pgfpoint{0.8mm}{2.4mm}}{0.12mm}\pgfusepath{fill}}}
+\definecolor{omLithSand}{HTML}{F6E3A1}
+\definecolor{omLithShale}{HTML}{C9D3C0}
+\definecolor{omLithLime}{HTML}{BFDCEB}
+\definecolor{omLithDolo}{HTML}{CDE3F0}
+\definecolor{omLithCongl}{HTML}{EBD3A8}
+\definecolor{omLithEvap}{HTML}{F1D9EE}
+\definecolor{omLithGranite}{HTML}{F4C2C2}
+\definecolor{omLithBasalt}{HTML}{9DB39A}
+\definecolor{omLithGneiss}{HTML}{E2C7DD}
+\definecolor{omLithSchist}{HTML}{D8D3C4}
+\definecolor{omLithAlluv}{HTML}{F3EED8}
+\definecolor{omSea}{HTML}{CFE6F5}
+\definecolor{omIce}{HTML}{EEF6FB}
+\tikzset{
+  om lith/.style 2 args={preaction={fill=#1}, pattern={#2}, pattern color=black!60},
+  lith sandstone/.style={om lith={omLithSand}{om sand}},
+  lith shale/.style={om lith={omLithShale}{om shale}},
+  lith limestone/.style={om lith={omLithLime}{om limestone}},
+  lith dolomite/.style={om lith={omLithDolo}{om dolomite}},
+  lith conglomerate/.style={om lith={omLithCongl}{om conglomerate}},
+  lith evaporite/.style={om lith={omLithEvap}{om evaporite}},
+  lith coal/.style={fill=black!80},
+  lith granite/.style={om lith={omLithGranite}{om granite}},
+  lith basalt/.style={om lith={omLithBasalt}{om basalt}},
+  lith gneiss/.style={om lith={omLithGneiss}{om gneiss}},
+  lith schist/.style={om lith={omLithSchist}{om schist}},
+  lith alluvium/.style={om lith={omLithAlluv}{om alluvium}},
+  lith sea/.style={fill=omSea},
+  lith ice/.style={fill=omIce},
+}
+\newcommand{\omlith}[1]{\tikz[baseline=0.1ex]\draw[black!60, line width=0.4pt,
+  lith #1] (0,-0.05) rectangle (0.75,0.3);}
+
+% ----------------------------------------------------------------------------
+% Map symbols. Azimuths are geographic (degrees clockwise from north); inside
+% the pics TikZ angles are 90 - azimuth. One map unit = 1 cm unless the figure
+% scales (then \pic[transform shape], tools/check_pic_scaling.py).
+%
+%   pic {northarrow}                         N arrow, 1 cm, origin at its foot
+%   pic {scalebar={<cm>}{<label>}}           alternating bar, origin at left
+%   pic {strikedip={<strike az>}{<dip label>}}  right-hand rule: the dip tick
+%                                            points to strike + 90
+%   pic {horizbed}                           horizontal bedding (circle-cross)
+%   pic {vertbed={<strike az>}}              vertical bedding
+%   pic {anticline={<axis az>}}, {syncline={<axis az>}}  1.6 cm fold-axis
+%                                            symbol, arrows out / in
+%   pic {dextral={<fault az>}}, {sinistral={<fault az>}}  half-arrows of
+%                                            strike-slip sense on both sides
+%
+% Line styles (draw the line so that the side named below is on its LEFT,
+% i.e. walk along the path with the downthrown block / overriding plate /
+% advancing air on your left hand):
+%   contact, unconformity (wavy), fault, normal fault (ticks on the
+%   downthrown side), thrust fault (teeth on the hanging wall), ridge,
+%   subduction (teeth on the overriding plate), transform,
+%   cold front, warm front, occluded front (symbols on the side the front
+%   moves toward), stationary front (cold symbols left, warm symbols right),
+%   isobar, isotherm, contour (topographic), index contour, river.
+% ----------------------------------------------------------------------------
+\colorlet{omRidge}{red!75!black}
+\colorlet{omTrench}{blue!60!black}
+\colorlet{omCold}{blue!75!black}
+\colorlet{omWarm}{red!80!black}
+\colorlet{omOccluded}{violet!80!black}
+\colorlet{omContour}{brown!70!black}
+\colorlet{omRiver}{blue!65!black}
+\tikzset{
+  contact/.style={black, line width=0.6pt},
+  unconformity/.style={black, line width=0.6pt, decorate,
+    decoration={snake, amplitude=0.45mm, segment length=2.2mm}},
+  fault/.style={black, line width=1.1pt},
+  normal fault/.style={fault, postaction={decorate, decoration={markings,
+    mark=between positions 0.08 and 0.95 step 6mm with {
+      \draw[line width=0.8pt] (0,0) -- (0,1.6mm);
+      \fill (0,1.9mm) circle (0.45mm);}}}},
+  thrust fault/.style={fault, postaction={decorate, decoration={markings,
+    mark=between positions 0.06 and 0.96 step 5mm with {
+      \fill (-0.9mm,0) -- (0.9mm,0) -- (0,1.7mm) -- cycle;}}}},
+  ridge/.style={omRidge, double=white, double distance=1.1pt, line width=0.7pt},
+  subduction/.style={omTrench, line width=1pt, postaction={decorate,
+    decoration={markings, mark=between positions 0.04 and 0.98 step 4.5mm with {
+      \fill[omTrench] (-0.9mm,0) -- (0.9mm,0) -- (0,1.8mm) -- cycle;}}}},
+  transform/.style={omRidge!70!black, line width=0.9pt},
+  cold front/.style={omCold, line width=1.1pt, postaction={decorate,
+    decoration={markings, mark=between positions 0.08 and 0.95 step 8mm with {
+      \fill[omCold] (-1.1mm,0) -- (1.1mm,0) -- (0,2.1mm) -- cycle;}}}},
+  warm front/.style={omWarm, line width=1.1pt, postaction={decorate,
+    decoration={markings, mark=between positions 0.08 and 0.95 step 8mm with {
+      \fill[omWarm] (-1.15mm,0) arc[start angle=180, end angle=0, radius=1.15mm]
+        -- cycle;}}}},
+  occluded front/.style={omOccluded, line width=1.1pt, postaction={decorate,
+    decoration={markings, mark=between positions 0.08 and 0.95 step 8mm with {
+      \fill[omOccluded] (-3.4mm,0) -- (-1.2mm,0) -- (-2.3mm,2.1mm) -- cycle;
+      \fill[omOccluded] (1.15mm,0) arc[start angle=180, end angle=0, radius=1.15mm]
+        -- cycle;}}}},
+  stationary front/.style={line width=1.1pt, omCold, postaction={decorate,
+    decoration={markings, mark=between positions 0.08 and 0.95 step 8mm with {
+      \fill[omCold] (-3.4mm,0) -- (-1.2mm,0) -- (-2.3mm,2.1mm) -- cycle;
+      \fill[omWarm] (1.15mm,0) arc[start angle=-180, end angle=0, radius=1.15mm]
+        -- cycle;}}}},
+  isobar/.style={black!75, line width=0.5pt},
+  isotherm/.style={omWarm, line width=0.5pt, densely dashed},
+  contour/.style={omContour, line width=0.35pt},
+  index contour/.style={omContour, line width=0.7pt},
+  river/.style={omRiver, line width=0.8pt},
+  pics/northarrow/.style={code={
+    \fill[black] (0,0) -- (0.18,0.15) -- (0,1) -- cycle;
+    \draw[black, line width=0.4pt, fill=white] (0,0) -- (-0.18,0.15) -- (0,1) -- cycle;
+    \node[font=\small\bfseries, above, inner sep=1pt] at (0,1) {N};
+  }},
+  pics/scalebar/.style 2 args={code={
+    \foreach \om@k in {0,1,2,3} {
+      \pgfmathsetmacro{\om@a}{#1*\om@k/4}\pgfmathsetmacro{\om@b}{#1*(\om@k+1)/4}
+      \pgfmathparse{int(mod(\om@k,2))}
+      \ifnum\pgfmathresult=0 \fill[black] (\om@a,0) rectangle (\om@b,0.12);
+      \else \fill[white] (\om@a,0) rectangle (\om@b,0.12); \fi }
+    \draw[black, line width=0.4pt] (0,0) rectangle (#1,0.12);
+    \node[font=\footnotesize, below, inner sep=1.5pt] at (0,0) {0};
+    \node[font=\footnotesize, below, inner sep=1.5pt] at (#1,0) {#2};
+  }},
+  pics/strikedip/.style 2 args={code={
+    \draw[black, line width=0.9pt] ({90-(#1)}:0.35) -- ({270-(#1)}:0.35);
+    \draw[black, line width=0.9pt] (0,0) -- ({-(#1)}:0.17);
+    \node[font=\scriptsize, inner sep=1pt] at ({-(#1)}:0.36) {#2};
+  }},
+  pics/horizbed/.style={code={
+    \draw[black, line width=0.6pt] (0,0) circle (0.12);
+    \draw[black, line width=0.6pt] (-0.12,0) -- (0.12,0) (0,-0.12) -- (0,0.12);
+  }},
+  pics/vertbed/.style={code={
+    \draw[black, line width=0.9pt] ({90-(#1)}:0.35) -- ({270-(#1)}:0.35);
+    \draw[black, line width=0.9pt] ({-(#1)}:0.15) -- ({180-(#1)}:0.15);
+  }},
+  pics/anticline/.style={code={
+    \draw[black, line width=0.9pt] ({90-(#1)}:0.8) -- ({270-(#1)}:0.8);
+    \draw[black, line width=0.7pt, -{Stealth[length=1.6mm]}] (0,0) -- ({-(#1)}:0.32);
+    \draw[black, line width=0.7pt, -{Stealth[length=1.6mm]}] (0,0) -- ({180-(#1)}:0.32);
+  }},
+  pics/syncline/.style={code={
+    \draw[black, line width=0.9pt] ({90-(#1)}:0.8) -- ({270-(#1)}:0.8);
+    \draw[black, line width=0.7pt, -{Stealth[length=1.6mm]}] ({-(#1)}:0.36) -- ({-(#1)}:0.04);
+    \draw[black, line width=0.7pt, -{Stealth[length=1.6mm]}] ({180-(#1)}:0.36) -- ({180-(#1)}:0.04);
+  }},
+  pics/dextral/.style={code={
+    \begin{scope}[rotate={90-(#1)}]
+      \draw[black, line width=0.6pt, -{Straight Barb[left,length=1.6mm]}] (-0.3,0.12) -- (0.3,0.12);
+      \draw[black, line width=0.6pt, -{Straight Barb[left,length=1.6mm]}] (0.3,-0.12) -- (-0.3,-0.12);
+    \end{scope}
+  }},
+  pics/sinistral/.style={code={
+    \begin{scope}[rotate={90-(#1)}]
+      \draw[black, line width=0.6pt, -{Straight Barb[right,length=1.6mm]}] (0.3,0.12) -- (-0.3,0.12);
+      \draw[black, line width=0.6pt, -{Straight Barb[right,length=1.6mm]}] (-0.3,-0.12) -- (0.3,-0.12);
+    \end{scope}
+  }},
+}
+
+% Wind barb (station model): pic {windbarb={<speed in knots>}{<direction the
+% wind blows FROM, az>}}. The staff points into the wind, 1 cm long; a pennant
+% is 50 kn, a full barb 10, a half barb 5 (speed rounded to 5). Barbs are drawn
+% on the clockwise side of the staff, the Northern Hemisphere convention; add
+% [om barb south] for the Southern Hemisphere. A calm (< 3 kn) is a circle.
+\newif\ifom@barbsouth
+\tikzset{om barb south/.code={\om@barbsouthtrue}}
+\tikzset{pics/windbarb/.style 2 args={code={
+  \pgfmathtruncatemacro{\om@s}{5*round((#1)/5)}
+  \pgfmathtruncatemacro{\om@pen}{floor(\om@s/50)}
+  \pgfmathtruncatemacro{\om@full}{floor((\om@s-50*\om@pen)/10)}
+  \pgfmathtruncatemacro{\om@half}{(\om@s-50*\om@pen-10*\om@full)>=5 ? 1 : 0}
+  \ifom@barbsouth\def\om@side{-1}\else\def\om@side{1}\fi
+  \draw[black, line width=0.4pt] (0,0) circle (0.09);
+  \ifnum\om@s<5\relax
+    \draw[black, line width=0.4pt] (0,0) circle (0.15);
+  \else
+  \begin{scope}[rotate={90-(#2)}]
+    \draw[black, line width=0.6pt] (0.09,0) -- (1,0);
+    \def\om@x{1}
+    \ifnum\om@pen>0
+      \foreach \om@k in {1,...,\om@pen}{
+        \pgfmathsetmacro{\om@xa}{1-0.14*(\om@k-1)}
+        \fill[black] (\om@xa,0) -- (\om@xa-0.12,{-\om@side*0.3}) -- (\om@xa-0.12,0) -- cycle;}
+    \fi
+    \pgfmathsetmacro{\om@x}{1-0.14*\om@pen-(\om@pen>0 ? 0.12 : 0)}% the first barb's tip stays clear of the last pennant
+    \ifnum\om@full>0
+      \foreach \om@k in {1,...,\om@full}{
+        \pgfmathsetmacro{\om@xa}{\om@x-0.1*(\om@k-1)}
+        \draw[black, line width=0.6pt] (\om@xa,0) -- (\om@xa+0.1,{-\om@side*0.3});}
+    \fi
+    \ifnum\om@half>0
+      \pgfmathsetmacro{\om@xa}{\om@x-0.1*\om@full-(\om@full+\om@pen>0 ? 0 : 0.1)}
+      \draw[black, line width=0.6pt] (\om@xa,0) -- (\om@xa+0.05,{-\om@side*0.15});
+    \fi
+  \end{scope}
+  \fi
+}}}
+
+% Pressure centres on a weather map: \node[pressure high] at (x,y) {H};
+\tikzset{
+  pressure high/.style={font=\Large\bfseries, text=omDef!80!black},
+  pressure low/.style={font=\Large\bfseries, text=omThm!80!black},
+}
+
+% ----------------------------------------------------------------------------
+% Block diagrams and the celestial sphere.
+%
+% pic {blockdiagram={<width>}{<height>}{<depth>}}: an oblique prism (depth
+% receding at 30 degrees, foreshortened by half), origin at the front bottom
+% left. Named coordinates for filling faces: -fbl -fbr -ftl -ftr (front),
+% -bbl -bbr -btl -btr (back). The faces are drawn last by the figure itself.
+%
+% pic {celestialsphere={<latitude in degrees>}}: the local sky as a sphere of
+% radius 2 cm around the observer, in true orthographic projection, seen from
+% the WEST and from 17.5 degrees above the horizon (the horizon's ellipse has a
+% minor axis of 0.3 R). North is to the LEFT, south to the right, east away
+% from the reader. Drawn: the sphere's outline, the horizon and the celestial
+% equator (front halves solid, back halves dashed), the polar axis. Named
+% coordinates: -O (observer), -Z (zenith), -N, -S, -W (front), -E (back) on
+% the horizon, -NCP and -SCP (the celestial poles, the north one at an
+% altitude equal to the latitude). Labels are the figure's.
+% ----------------------------------------------------------------------------
+\tikzset{
+  pics/blockdiagram/.style n args={3}{code={
+    \pgfmathsetmacro{\om@dx}{0.5*(#3)*cos(30)}\pgfmathsetmacro{\om@dy}{0.5*(#3)*sin(30)}
+    \coordinate (-fbl) at (0,0);   \coordinate (-fbr) at (#1,0);
+    \coordinate (-ftl) at (0,#2);  \coordinate (-ftr) at (#1,#2);
+    \coordinate (-bbl) at (\om@dx,\om@dy);   \coordinate (-bbr) at ({#1+\om@dx},\om@dy);
+    \coordinate (-btl) at (\om@dx,{#2+\om@dy});  \coordinate (-btr) at ({#1+\om@dx},{#2+\om@dy});
+  }},
+  pics/celestialsphere/.style={code={
+    \def\om@R{2}\def\om@se{0.3}\def\om@ce{0.9539}
+    \coordinate (-O) at (0,0);
+    \coordinate (-Z) at (0,{\om@R*\om@ce});
+    \coordinate (-N) at (-\om@R,0);
+    \coordinate (-S) at (\om@R,0);
+    \coordinate (-W) at (0,{-\om@R*\om@se});
+    \coordinate (-E) at (0,{\om@R*\om@se});
+    \coordinate (-NCP) at ({-\om@R*cos(#1)},{\om@R*sin(#1)*\om@ce});
+    \coordinate (-SCP) at ({\om@R*cos(#1)},{-\om@R*sin(#1)*\om@ce});
+    \draw[black, line width=0.6pt] (0,0) circle (\om@R);
+    \draw[black!70, line width=0.5pt, dashed] plot[domain=0:180, samples=61, smooth, variable=\t]
+      ({\om@R*cos(\t)},{\om@R*sin(\t)*\om@se});
+    \draw[black!70, line width=0.6pt] plot[domain=180:360, samples=61, smooth, variable=\t]
+      ({\om@R*cos(\t)},{\om@R*sin(\t)*\om@se});
+    \draw[omDef, line width=0.5pt, dashed] plot[domain=0:180, samples=61, smooth, variable=\t]
+      ({\om@R*cos(\t)*sin(#1)},{\om@R*(sin(\t)*\om@se+cos(\t)*cos(#1)*\om@ce)});
+    \draw[omDef, line width=0.6pt] plot[domain=180:360, samples=61, smooth, variable=\t]
+      ({\om@R*cos(\t)*sin(#1)},{\om@R*(sin(\t)*\om@se+cos(\t)*cos(#1)*\om@ce)});
+    \draw[omThm, line width=0.6pt] (-SCP) -- (-NCP);
+    \draw[black!60, line width=0.4pt, densely dotted] (0,0) -- (-Z);
+    \fill (0,0) circle (0.04);
+  }},
+}
+
+% ----------------------------------------------------------------------------
+% Plot styles. Axis labels are prose and are written in the chapter.
+%   omrecord  -- a time series: axes left and bottom, light grid.
+%   omage     -- time before present, older to the LEFT (x dir=reverse with
+%                Ma or ka on x): \begin{axis}[omrecord, omage] ...
+%   omdepth   -- depth downward on y (y dir=reverse): geotherms, profiles,
+%                PREM, soundings.
+%   ommap     -- longitude/latitude axes in degrees with a 1:1 aspect
+%                (equirectangular); data from figdata/shared/geo.py.
+%   omsection -- a cross-section: distance on x, elevation on y, the axes
+%                left and bottom; state the vertical exaggeration with \omve{N}.
+%   ompt      -- pressure-temperature grid (T on x, P or depth on y).
+% Tick labels print thousands with a thin space (1 000), never a comma.
+% ----------------------------------------------------------------------------
+\pgfplotsset{/pgf/number format/1000 sep={\,}}
+\pgfplotsset{
+  omrecord/.style={axis x line=bottom, axis y line=left, axis line style={-}, grid=major,
+    grid style={gray!22, line width=0.3pt},
+    every axis label/.append style={font=\small},
+    tick label style={font=\small}, legend style={font=\footnotesize}},
+  omage/.style={x dir=reverse},
+  omdepth/.style={y dir=reverse},
+  ommap/.style={axis equal image, xmin=-180, xmax=180, ymin=-90, ymax=90,
+    xtick={-180,-120,...,180}, ytick={-90,-60,...,90},
+    tick label style={font=\scriptsize},
+    xticklabel={$\pgfmathprintnumber{\tick}^\circ$},
+    yticklabel={$\pgfmathprintnumber{\tick}^\circ$},
+    grid=major, grid style={gray!25, line width=0.25pt},
+    axis background/.style={fill=omSea}},
+  omsection/.style={axis x line=bottom, axis y line=left, axis line style={-}, clip=false,
+    every axis label/.append style={font=\small}, tick label style={font=\small}},
+  ompt/.style={axis x line=bottom, axis y line=left, axis line style={-}, grid=major,
+    grid style={gray!22, line width=0.3pt},
+    every axis label/.append style={font=\small}, tick label style={font=\small}},
+}
+\newcommand{\omve}[1]{{\footnotesize\itshape\omnameVE~$\times#1$}}
+
+% amsthm's proof environment prints \proofname, which is English unless babel
+% localises it — and babel is optional here (see above). Without this, a French
+% chapter opens every proof with "Proof." instead of "Démonstration.".
+\renewcommand{\proofname}{\omnameProof}
+
+% Results stated without proof
+\newcommand{\admitted}{\begin{proof}[\omnameProof]\emph{\omadmittedtext}\end{proof}}
+
+% cleveref names. Every referenceable environment needs one: cleveref's built-in
+% names are English, and babel (which would localise them) is optional here — so
+% without these a French book reads "d'apres le Theorem 3.1" and "Chapter 5" in
+% the middle of its French prose. The names come from styles/lang/<lang>.tex, so
+% English output is unchanged and each translation gets its own.
+\crefname{definition}{\omnameDefinition}{\omnameDefinitions}
+\Crefname{definition}{\omnameDefinition}{\omnameDefinitions}
+\crefname{theorem}{\omnameTheorem}{\omnameTheorems}
+\Crefname{theorem}{\omnameTheorem}{\omnameTheorems}
+\crefname{proposition}{\omnameProposition}{\omnamePropositions}
+\Crefname{proposition}{\omnameProposition}{\omnamePropositions}
+\crefname{lemma}{\omnameLemma}{\omnameLemmas}
+\Crefname{lemma}{\omnameLemma}{\omnameLemmas}
+\crefname{corollary}{\omnameCorollary}{\omnameCorollarys}
+\Crefname{corollary}{\omnameCorollary}{\omnameCorollarys}
+\crefname{method}{\omnameMethod}{\omnameMethods}
+\Crefname{method}{\omnameMethod}{\omnameMethods}
+\crefname{example}{\omnameExample}{\omnameExamples}
+\Crefname{example}{\omnameExample}{\omnameExamples}
+\crefname{notation}{\omnameNotation}{\omnameNotations}
+\Crefname{notation}{\omnameNotation}{\omnameNotations}
+\crefname{remark}{\omnameRemark}{\omnameRemarks}
+\Crefname{remark}{\omnameRemark}{\omnameRemarks}
+\crefname{chapter}{\omnameChapter}{\omnameChapters}
+\Crefname{chapter}{\omnameChapter}{\omnameChapters}
+\crefname{section}{\omnameSection}{\omnameSections}
+\Crefname{section}{\omnameSection}{\omnameSections}
+\crefname{exercise}{\omnameExercise}{\omnameExercises}
+\Crefname{exercise}{\omnameExercise}{\omnameExercises}
+\crefname{problem}{\omnameProblem}{\omnameProblems}
+\Crefname{problem}{\omnameProblem}{\omnameProblems}
+
+% Arabic refers to a numbered statement with the definite article: the heading
+% reads "مبرهنة 3.1" but the reference reads "حسب المبرهنة 3.1". The \omname*
+% strings above are the headings, so override the reference names here rather
+% than putting the article in styles/lang/ar.tex (which would prefix every
+% heading too). Written out attached, because the Arabic article is a bound
+% prefix, not a separate word: prefixing it in prose around \cref would put a
+% link boundary between ال and its noun and break the shaping.
+\ifom@arabic
+  \crefname{section}{القسم}{الأقسام}
+  \Crefname{section}{القسم}{الأقسام}
+  \crefname{definition}{التعريف}{التعريفات}
+  \Crefname{definition}{التعريف}{التعريفات}
+  \crefname{theorem}{المبرهنة}{المبرهنات}
+  \Crefname{theorem}{المبرهنة}{المبرهنات}
+  \crefname{proposition}{القضية}{القضايا}
+  \Crefname{proposition}{القضية}{القضايا}
+  \crefname{lemma}{المبرهنة المساعدة}{المبرهنات المساعدة}
+  \Crefname{lemma}{المبرهنة المساعدة}{المبرهنات المساعدة}
+  \crefname{corollary}{النتيجة}{النتائج}
+  \Crefname{corollary}{النتيجة}{النتائج}
+  \crefname{method}{الطريقة}{الطرائق}
+  \Crefname{method}{الطريقة}{الطرائق}
+  \crefname{example}{المثال}{الأمثلة}
+  \Crefname{example}{المثال}{الأمثلة}
+  \crefname{notation}{الترميز}{الترميزات}
+  \Crefname{notation}{الترميز}{الترميزات}
+  \crefname{remark}{الملاحظة}{الملاحظات}
+  \Crefname{remark}{الملاحظة}{الملاحظات}
+  \crefname{chapter}{الفصل}{الفصول}
+  \Crefname{chapter}{الفصل}{الفصول}
+  \crefname{exercise}{التمرين}{التمارين}
+  \Crefname{exercise}{التمرين}{التمارين}
+  \crefname{problem}{المسألة}{المسائل}
+  \Crefname{problem}{المسألة}{المسائل}
+  % cleveref's conjunctions are English built-ins and babel does not localise
+  % them here, so a multi-reference printed "التمارين 1.1 and 1.2" and a range
+  % "1.1 to 1.3" in the middle of Arabic prose. The conjunction و is a bound
+  % prefix: it is written attached to the word that follows it, hence the
+  % space before it and none after.
+  % Deferred to the END of begindocument: cleveref creates these macros in
+  % its own \AtBeginDocument, so a \renewcommand at package-load time errors
+  % with "Command \crefpairconjunction undefined", and a plain
+  % \AtBeginDocument is only reliably later if ours was registered after
+  % cleveref's -- which held in one style file and not the other.
+  \AddToHook{begindocument/end}{%
+    \renewcommand{\crefpairconjunction}{ و}%
+    \renewcommand{\crefmiddleconjunction}{، }%
+    \renewcommand{\creflastconjunction}{ و}%
+    \renewcommand{\crefpairgroupconjunction}{ و}%
+    \renewcommand{\crefmiddlegroupconjunction}{، }%
+    \renewcommand{\creflastgroupconjunction}{ و}%
+    \renewcommand{\crefrangeconjunction}{ إلى }%
+    \renewcommand{\crefrangepreconjunction}{}%
+    \renewcommand{\crefrangepostconjunction}{}%
+  }%
+\fi
+
+% ----------------------------------------------------------------------------
+% Solutions appendix
+% Usage: \begin{solution}{exo:tle:seq:1} ... \end{solution}
+% Prints "Solution of Exercise <n> (page <p>)." / French equivalent.
+% Every solution is also a hyperlink target labelled sol:<key>, so that
+% exercises can link forward to their solutions (see \omsolutionlinks).
+% ----------------------------------------------------------------------------
+% Under \omlinkpadding (below) the sol: anchor is put after \noindent, i.e. into
+% the line of type rather than into the vertical list, which is the only place
+% hyperref can raise it from. A book with no padding keeps the anchor, and so
+% its appendix keeps the page breaks, exactly where they were.
+\newcommand{\om@solutionanchor}[1]{%
+  \ifdim\omlinkpad=\z@
+    \phantomsection\label{sol:#1}\noindent
+  \else
+    \noindent\phantomsection\label{sol:#1}%
+  \fi
+}
+\newenvironment{solution}[1]{%
+  \par\medskip\om@solutionanchor{#1}%
+  \textbf{\omsolutionof~\cref{#1}} (\ompage~\pageref{#1}).\par\nopagebreak\smallskip
+  \noindent\ignorespaces
+}{\par\medskip}
+
+% ----------------------------------------------------------------------------
+% Defined terms: \omterm{def:...}{text} links a term used in the course, an
+% exercise, a problem or a solution back to the definition that introduces it.
+%
+% The wrapping is generated, not hand-written: a term earns a link only if it
+% is introduced as \emph{term}\index{...} inside a definition (the convention
+% in CONTRIBUTING.md), and it is linked at its first use in each chapter and
+% again inside each exercise, problem and solution -- enough for a reader who
+% lands mid-chapter, without turning every paragraph blue. Terms defined twice
+% (\emph{compact} as a space and as an operator) are deliberately not linked:
+% an automatic link would point at the wrong one half the time.
+% ----------------------------------------------------------------------------
+\newcommand{\omterm}[2]{\hyperref[#1]{#2}}
+
+% ----------------------------------------------------------------------------
+% Where a clicked link lands
+%
+% hyperref writes an XYZ destination at exactly the anchor's position and the
+% viewer puts that point at the top of the window, so following \omterm, \cref
+% or a "Solution p. N" pointer used to leave the definition box flush against
+% the top edge, with nothing above it. Every book therefore raises the
+% destination of every statement (and of every solution) by three lines, so the
+% reader lands just above the target instead. \omlinkpadding{<len>} overrides
+% the amount for one book; \omlinkpadding{0pt} restores hyperref's placement.
+%
+% How the raise is applied: hyperref raises an anchor written in HORIZONTAL
+% mode (\Hy@raisedlink smashes it into a \raise'd box, which costs no space)
+% and lets a package add to that raise through \HyperRaiseLinkHook -- so an
+% anchor sitting in a line of type is free to move. In VERTICAL mode it raises
+% nothing, and there is no room to raise anything: a box put into the vertical
+% list to carry the anchor upwards is itself an item in that list, and it
+% breaks the \addvspace glue merging around it (measurably: the contents grew
+% by a page, and \@item's \addvspace stopped absorbing \parskip before every
+% statement).
+%
+% A theorem anchor is written in vertical mode -- \hyper@refstepcounter runs
+% inside amsthm's \trivlist. But amsthm boxes the theorem head immediately
+% afterwards (\sbox\@labels in \deferred@thm@head), in horizontal mode. So the
+% anchor is caught as it is written, held, and released inside that box: it
+% ends up in the head's line of type, where hyperref's own raise carries it up
+% by \HyperRaiseLinkDefault + \omlinkpad and the page does not move at all.
+% Chapter, section and contents anchors are left exactly where hyperref puts
+% them (a heading at the top of the window reads fine, and a raised anchor
+% before a heading's \addvspace risks landing on the previous page).
+% ----------------------------------------------------------------------------
+\newlength{\omlinkpad}
+\setlength{\omlinkpad}{3\baselineskip}
+\newcommand{\omlinkpadding}[1]{\setlength{\omlinkpad}{#1}}
+\renewcommand{\HyperRaiseLinkHook}{\addtolength{\HyperRaiseLinkLength}{\omlinkpad}}
+
+\newif\ifom@holdanchor
+\newcommand{\om@heldanchor}{}
+\newcommand{\om@holdanchor}{\ifdim\omlinkpad=\z@\else\om@holdanchortrue\fi}
+\newcommand{\om@flushanchor}{%
+  \ifdefempty{\om@heldanchor}{}{%
+    \Hy@raisedlink{\om@heldanchor}\gdef\om@heldanchor{}%
+  }%
+}
+\let\om@raisedlink\Hy@raisedlink
+\def\Hy@raisedlink#1{%
+  \ifom@holdanchor
+    \gdef\om@heldanchor{#1}%
+    \om@holdanchorfalse
+  \else
+    \om@raisedlink{#1}%
+  \fi
+}
+% Hold the anchor \refstepcounter writes from the moment a statement opens
+% (\@thm is cleveref's wrapper around amsthm's, so hook its front, not its
+% body) ...
+\pretocmd{\@thm}{\om@holdanchor}{}%
+  {\PackageWarning{oneearth}{Cannot hold statement anchors: \string\@thm\space
+    not patchable, \string\omlinkpadding\space does nothing for statements}}
+% ... and release it into the head box a moment later. The \om@holdanchorfalse
+% is for the statement that writes no anchor at all (an unnumbered one): the
+% hold must not outlive it and swallow somebody else's anchor.
+\pretocmd{\deferred@thm@head}{\om@holdanchorfalse}{}%
+  {\PackageWarning{oneearth}{Cannot disarm statement anchor hold}}
+\patchcmd{\deferred@thm@head}{\sbox\@labels{\normalfont#1}}%
+  {\sbox\@labels{\normalfont\om@flushanchor#1}}{}%
+  {\PackageWarning{oneearth}{Cannot release statement anchors: \string
+    \deferred@thm@head\space not patchable}}
+
+% ----------------------------------------------------------------------------
+% Forward links exercise -> solution (opt-in per book)
+% A book whose entry file calls \omsolutionlinks (after loading this
+% package, before any chapter) gets, at the end of every exercise and
+% problem, a right-aligned pointer "Solution p. <n>" hyperlinked to the
+% sol:<key> target above, where <key> is the first \label written inside
+% the environment. Books that do not opt in are typeset unchanged.
+% ----------------------------------------------------------------------------
+\newif\ifomsollinks
+\newcommand{\omsolutionlinks}{\omsollinkstrue}
+\gdef\omsollink@key{}
+\newcommand{\omsollink@arm}{%
+  \gdef\omsollink@key{}%
+  \let\omsollink@origlabel\label
+  \renewcommand{\label}[1]{%
+    \omsollink@origlabel{##1}%
+    \ifdefempty{\omsollink@key}{\gdef\omsollink@key{##1}}{}%
+  }%
+}
+\newcommand{\omsollink@emit}{%
+  \ifdefempty{\omsollink@key}{}{%
+    \par\nopagebreak\smallskip
+    \noindent\hfill{\footnotesize\itshape
+      \hyperref[sol:\omsollink@key]{\omnameGotoSolution~\pageref{sol:\omsollink@key}}}%
+    \par
+  }%
+}
+\AtBeginEnvironment{exercise}{\ifomsollinks\omsollink@arm\fi}
+\AtEndEnvironment{exercise}{\ifomsollinks\omsollink@emit\fi}
+\AtBeginEnvironment{problem}{\ifomsollinks\omsollink@arm\fi}
+\AtEndEnvironment{problem}{\ifomsollinks\omsollink@emit\fi}
+
+% A list opening as the very first thing in a statement environment used to
+% typeset its first item on the run-in heading's line ("Method 25.6  1. …"):
+% amsthm holds the heading as a pending trivlist label, and the first \item
+% attaches itself to it. While that label is pending @inlabel is true, so
+% \leavevmode there commits the heading to its own paragraph and the list
+% starts on a fresh line; lists that follow normal text are untouched.
+\newcommand{\om@listafterhead}{\if@inlabel\leavevmode\fi}
+\AtBeginEnvironment{enumerate}{\om@listafterhead}
+\AtBeginEnvironment{itemize}{\om@listafterhead}
+\AtBeginEnvironment{description}{\om@listafterhead}
+
+% ----------------------------------------------------------------------------
+% Math macros
+% ----------------------------------------------------------------------------
+% Number sets
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+
+% Delimiters
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+% Intervals (international convention): \intcc{a}{b} = [a, b], \intoo = (a, b)
+\newcommand{\intcc}[2]{\left[#1,\,#2\right]}
+\newcommand{\intoo}[2]{\left(#1,\,#2\right)}
+\newcommand{\intco}[2]{\left[#1,\,#2\right)}
+\newcommand{\intoc}[2]{\left(#1,\,#2\right]}
+% Integer interval \intint{a}{b} = [[a, b]] = {a, a+1, ..., b}
+\newcommand{\intint}[2]{[\![#1,\,#2]\!]}
+% Triple bar (operator norm) |||u|||
+\newcommand{\vertiii}[1]{{\left\vert\kern-0.3ex\left\vert\kern-0.3ex\left\vert
+  #1 \right\vert\kern-0.3ex\right\vert\kern-0.3ex\right\vert}}
+
+% Calculus
+\newcommand{\dd}{\mathop{}\!\mathrm{d}}
+\newcommand{\eu}{\mathrm{e}}
+\newcommand{\iu}{\mathrm{i}}
+
+% Vectors and geometry
+\newcommand{\vect}[1]{\overrightarrow{#1}}
+\newcommand{\scal}[2]{\vect{#1}\cdot\vect{#2}}
+
+% Complex numbers
+\newcommand{\conj}[1]{\overline{#1}}
+\DeclareMathOperator{\Rea}{Re}
+\DeclareMathOperator{\Ima}{Im}
+\DeclareMathOperator{\Arg}{arg}
+
+% Probability
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\mathbb{V}}
+\newcommand{\pcond}[2]{\P_{#1}\!\left(#2\right)}
+
+% Arithmetic
+\DeclareMathOperator{\lcm}{lcm}
+
+% Quantum notation (Book 2 grade 12 and Books 3–5)
+\newcommand{\ket}[1]{\left|#1\right\rangle}
+\newcommand{\bra}[1]{\left\langle#1\right|}
+\newcommand{\braket}[2]{\left\langle#1\,\middle|\,#2\right\rangle}
+
+% Misc: \st is defined in styles/lang/<lang>.tex
+
+% ----------------------------------------------------------------------------
+% Ragged bottom, series-wide (the chemistry series' final reconciliation): with
+% the book class's \flushbottom, a float that did not fit stretched the glue of
+% its page into gaps of up to a third of a page.
+% ----------------------------------------------------------------------------
+\raggedbottom
+
+% ----------------------------------------------------------------------------
+% Sync 1 (Book 1 Phase A, 2026-10-22; main session): weather icons, a puffy
+% cloud, a compass rose, a hypsometric palette.
+% ----------------------------------------------------------------------------
+% Weather icons: pic {omwx=<name>} draws a 1 x 1 icon centred on the origin
+% (scale it with the scope); \omwx[<scale>]{<name>} sets it inline, about one
+% line high. Names: sun, suncloud, cloud, rain, shower, snow, storm, fog, wind.
+% pic {puffycloud} is a 2 x 1 fair-weather cloud with a flat base, origin at
+% the middle of its base, for scenes and diagrams.
+\definecolor{omWxSun}{HTML}{F5B700}
+\definecolor{omWxCloud}{HTML}{F4F6F8}
+\definecolor{omWxDark}{HTML}{9AA3AE}
+\definecolor{omWxRain}{HTML}{2E7BC4}
+\definecolor{omWxBolt}{HTML}{F2C200}
+\newcommand{\om@wxshapes}[1]{% one path per shape: overlapping subpaths of
+  % opposite orientation would leave holes under the nonzero rule
+  #1 (-0.34,-0.12) rectangle (0.36,0.0);
+  #1 (-0.20,0.02) circle (0.15); #1 (0.06,0.10) circle (0.20);
+  #1 (0.26,0.00) circle (0.12); #1 (-0.34,-0.03) circle (0.09);
+  #1 (0.36,-0.03) circle (0.09);}
+\newcommand{\om@wxcloud}[3]{% #1 dx, #2 dy, #3 fill
+  \begin{scope}[shift={(#1,#2)}]
+    \om@wxshapes{\draw[black!60, line width=0.8pt]}%
+    \om@wxshapes{\fill[#3]}%
+  \end{scope}}
+\newcommand{\om@wxsun}[3]{% #1 dx, #2 dy, #3 radius
+  \begin{scope}[shift={(#1,#2)}]
+    \foreach \om@r in {0,45,...,315}
+      \draw[omWxSun, line width=0.8pt, line cap=round]
+        (\om@r:{1.35*#3}) -- (\om@r:{1.85*#3});
+    \fill[omWxSun] (0,0) circle (#3);
+  \end{scope}}
+\newcommand{\om@wxdrops}{%
+  \foreach \om@x in {-0.18,0.02,0.22}
+    \draw[omWxRain, line width=0.9pt, line cap=round]
+      (\om@x,-0.22) -- ++(-0.07,-0.20);}
+\tikzset{
+  pics/omwx/.style={code={\csname om@wx@#1\endcsname}},
+  pics/puffycloud/.style={code={
+    \begin{scope}[scale=2.6, shift={(0,0.12)}]\om@wxcloud{0}{0}{white}\end{scope}
+  }},
+}
+\newcommand{\om@wx@sun}{\om@wxsun{0}{0}{0.2}}
+\newcommand{\om@wx@cloud}{\om@wxcloud{0}{0.02}{omWxCloud}}
+\newcommand{\om@wx@suncloud}{\om@wxsun{-0.16}{0.16}{0.15}\om@wxcloud{0.08}{-0.08}{omWxCloud}}
+\newcommand{\om@wx@rain}{\om@wxcloud{0}{0.14}{omWxDark!45}\om@wxdrops}
+\newcommand{\om@wx@shower}{\om@wxsun{-0.2}{0.26}{0.12}\om@wxcloud{0.04}{0.12}{omWxCloud}\om@wxdrops}
+\newcommand{\om@wx@snow}{\om@wxcloud{0}{0.14}{omWxCloud}%
+  \foreach \om@x/\om@y in {-0.2/-0.27,0.02/-0.37,0.24/-0.27}
+    \foreach \om@a in {0,60,120}
+      \draw[omWxRain, line width=0.6pt] (\om@x,\om@y) ++(\om@a:0.07) -- ++(\om@a+180:0.14);}
+\newcommand{\om@wx@storm}{\om@wxcloud{0}{0.14}{omWxDark!80}%
+  \fill[omWxBolt, draw=black!60, line width=0.3pt, line join=round]
+    (0.06,-0.04) -- (-0.08,-0.24) -- (0.0,-0.24) -- (-0.08,-0.44)
+    -- (0.12,-0.18) -- (0.03,-0.18) -- (0.12,-0.04) -- cycle;}
+\newcommand{\om@wx@fog}{%
+  \foreach \om@y/\om@a/\om@b in {0.24/-0.34/0.3, 0.08/-0.4/0.4, -0.08/-0.3/0.36, -0.24/-0.38/0.24}
+    \draw[omWxDark, line width=1.4pt, line cap=round] (\om@a,\om@y) -- (\om@b,\om@y);}
+\newcommand{\om@wx@wind}{%
+  \draw[omWxDark!120, line width=1pt, line cap=round]
+    (-0.4,0.18) -- (0.2,0.18) arc[start angle=-90, end angle=180, radius=0.1]
+    (-0.4,0.0) -- (0.32,0.0) arc[start angle=90, end angle=-180, radius=0.1]
+    (-0.4,-0.18) -- (0.05,-0.18);}
+\newcommand{\omwx}[2][1]{%
+  \pgfmathsetmacro{\om@wxscale}{0.5*(#1)}%
+  \tikz[baseline={(0,-0.25)}, x=\om@wxscale cm, y=\om@wxscale cm]{%
+    \useasboundingbox (-0.5,-0.5) rectangle (0.5,0.5);\pic{omwx=#2};}}
+
+% Compass rose: pic {compassrose}, radius 1 (scale with the scope); four long
+% points N, E, S, W with labels, four short diagonal points. Each point is
+% half black, half white so the rose reads under any rotation. Labels are
+% nodes: with transform shape they scale with the rose.
+\tikzset{pics/compassrose/.style={code={
+  \foreach \om@a/\om@l in {90/N,0/E,270/S,180/W} {
+    \fill[black] (0,0) -- (\om@a:1) -- (\om@a+45:0.2) -- cycle;
+    \draw[black, line width=0.4pt, fill=white] (0,0) -- (\om@a:1) -- (\om@a-45:0.2) -- cycle;
+    \node[font=\small\bfseries, inner sep=1pt] at (\om@a:1.22) {\om@l};
+  }
+  \foreach \om@a in {45,135,225,315} {
+    \fill[black!70] (0,0) -- (\om@a:0.55) -- (\om@a+45:0.12) -- cycle;
+    \draw[black, line width=0.3pt, fill=white] (0,0) -- (\om@a:0.55) -- (\om@a-45:0.12) -- cycle;
+  }
+  \draw[black, line width=0.4pt, fill=white] (0,0) circle (0.06);
+}}}
+
+% Hypsometric palette (physical maps): land from low to high, sea from shallow
+% to deep. Suggested bands: land 0-200, 200-500, 500-1000, 1000-2000,
+% 2000-4000, above 4000 m; sea 0-200, 200-2000, 2000-4000, below 4000 m.
+\definecolor{omHypsLandA}{HTML}{9CC98A}
+\definecolor{omHypsLandB}{HTML}{C9DE99}
+\definecolor{omHypsLandC}{HTML}{F1E7A8}
+\definecolor{omHypsLandD}{HTML}{E5C58A}
+\definecolor{omHypsLandE}{HTML}{C79E76}
+\definecolor{omHypsLandF}{HTML}{ECE8E3}
+\definecolor{omHypsSeaA}{HTML}{DCEEF8}
+\definecolor{omHypsSeaB}{HTML}{B3D8EE}
+\definecolor{omHypsSeaC}{HTML}{84BCE0}
+\definecolor{omHypsSeaD}{HTML}{5A9CCF}
+
+% Sync 1 (Book 2 Phase A, 2026-10-22; main session): deep-crust and mantle
+% lithologies --- lith gabbro, lith peridotite, lith eclogite.
+\tikzdeclarepattern{name=om gabbro, type=uncolored,
+  bounding box={(0,0) and (4mm,4mm)}, tile size={(4mm,4mm)},
+  code={\pgfsetlinewidth{0.35pt}
+        \pgfpathmoveto{\pgfpoint{0.5mm}{1mm}}\pgfpathlineto{\pgfpoint{1.5mm}{1mm}}
+        \pgfpathmoveto{\pgfpoint{1mm}{0.5mm}}\pgfpathlineto{\pgfpoint{1mm}{1.5mm}}
+        \pgfpathmoveto{\pgfpoint{2.5mm}{3.5mm}}\pgfpathlineto{\pgfpoint{3mm}{2.6mm}}
+        \pgfpathlineto{\pgfpoint{3.5mm}{3.5mm}}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om peridotite, type=uncolored,
+  bounding box={(0,0) and (3mm,3mm)}, tile size={(3mm,3mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathcircle{\pgfpoint{0.8mm}{0.8mm}}{0.4mm}
+        \pgfpathcircle{\pgfpoint{2.3mm}{2.3mm}}{0.4mm}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om eclogite, type=uncolored,
+  bounding box={(0,0) and (3.5mm,3.5mm)}, tile size={(3.5mm,3.5mm)},
+  code={\pgfpathmoveto{\pgfpoint{0.9mm}{0.4mm}}\pgfpathlineto{\pgfpoint{1.4mm}{0.9mm}}
+        \pgfpathlineto{\pgfpoint{0.9mm}{1.4mm}}\pgfpathlineto{\pgfpoint{0.4mm}{0.9mm}}
+        \pgfpathclose
+        \pgfpathmoveto{\pgfpoint{2.6mm}{2.1mm}}\pgfpathlineto{\pgfpoint{3.1mm}{2.6mm}}
+        \pgfpathlineto{\pgfpoint{2.6mm}{3.1mm}}\pgfpathlineto{\pgfpoint{2.1mm}{2.6mm}}
+        \pgfpathclose
+        \pgfusepath{fill}}}
+\definecolor{omLithGabbro}{HTML}{8FB08A}
+\definecolor{omLithPeridotite}{HTML}{BCCB74}
+\definecolor{omLithEclogite}{HTML}{D3A29C}
+\tikzset{
+  lith gabbro/.style={om lith={omLithGabbro}{om gabbro}},
+  lith peridotite/.style={om lith={omLithPeridotite}{om peridotite}},
+  lith eclogite/.style={om lith={omLithEclogite}{om eclogite}},
+}
+
+% Sync 1 (Book 3 Phase A, 2026-10-22; main session): units. \sverdrup (not
+% \Sv: the sievert), \gal for gravity anomalies (\milli\gal = mGal), \mag for
+% stellar magnitudes.
+\DeclareSIUnit{\sverdrup}{Sv}
+\DeclareSIUnit{\gal}{Gal}
+\DeclareSIUnit{\mag}{mag}
+
+% Sync 2 (Book 4 Phase A, 2026-10-23; main session): metamorphic, volcanic
+% and chemical lithologies --- lith migmatite, marble, quartzite,
+% serpentinite, tuff, rhyolite, andesite, chert, banded iron, reef limestone.
+\tikzdeclarepattern{name=om migmatite, type=uncolored,
+  bounding box={(0,0) and (5mm,3mm)}, tile size={(5mm,3mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathmoveto{\pgfpoint{0mm}{0.8mm}}
+        \pgfpathcurveto{\pgfpoint{1.2mm}{2.2mm}}{\pgfpoint{3.6mm}{-0.6mm}}{\pgfpoint{5mm}{0.8mm}}
+        \pgfusepath{stroke}
+        \pgfpathmoveto{\pgfpoint{2.1mm}{2.2mm}}\pgfpathlineto{\pgfpoint{2.9mm}{2.2mm}}
+        \pgfpathmoveto{\pgfpoint{2.5mm}{1.8mm}}\pgfpathlineto{\pgfpoint{2.5mm}{2.6mm}}
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om tuff, type=uncolored,
+  bounding box={(0,0) and (4mm,4mm)}, tile size={(4mm,4mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathmoveto{\pgfpoint{0.6mm}{1.4mm}}\pgfpathlineto{\pgfpoint{1mm}{0.7mm}}
+        \pgfpathlineto{\pgfpoint{1.4mm}{1.4mm}}\pgfusepath{stroke}
+        \pgfpathcircle{\pgfpoint{3mm}{1mm}}{0.15mm}
+        \pgfpathcircle{\pgfpoint{1.2mm}{3.1mm}}{0.15mm}
+        \pgfpathcircle{\pgfpoint{3.2mm}{3.2mm}}{0.15mm}\pgfusepath{fill}}}
+\tikzdeclarepattern{name=om chert, type=uncolored,
+  bounding box={(0,0) and (4mm,3mm)}, tile size={(4mm,3mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathmoveto{\pgfpoint{0.5mm}{0.5mm}}\pgfpathlineto{\pgfpoint{1.5mm}{0.5mm}}
+        \pgfpathlineto{\pgfpoint{1mm}{1.3mm}}\pgfpathclose
+        \pgfpathmoveto{\pgfpoint{2.5mm}{2mm}}\pgfpathlineto{\pgfpoint{3.5mm}{2mm}}
+        \pgfpathlineto{\pgfpoint{3mm}{2.8mm}}\pgfpathclose
+        \pgfusepath{stroke}}}
+\tikzdeclarepattern{name=om banded iron, type=uncolored,
+  bounding box={(0,0) and (4mm,1.6mm)}, tile size={(4mm,1.6mm)},
+  code={\pgfpathrectangle{\pgfpoint{0mm}{0mm}}{\pgfpoint{4mm}{0.45mm}}
+        \pgfusepath{fill}}}
+\tikzdeclarepattern{name=om reef, type=uncolored,
+  bounding box={(0,0) and (4mm,3mm)}, tile size={(4mm,3mm)},
+  code={\pgfsetlinewidth{0.3pt}
+        \pgfpathmoveto{\pgfpoint{0.4mm}{0.4mm}}
+        \pgfpatharc{180}{0}{0.6mm}
+        \pgfpathmoveto{\pgfpoint{2.4mm}{1.9mm}}
+        \pgfpatharc{180}{0}{0.6mm}
+        \pgfusepath{stroke}}}
+\definecolor{omLithMigmatite}{HTML}{E9B9C9}
+\definecolor{omLithMarble}{HTML}{E3EAF1}
+\definecolor{omLithQuartzite}{HTML}{EFE5CE}
+\definecolor{omLithSerpentinite}{HTML}{8FBF9C}
+\definecolor{omLithTuff}{HTML}{E7D5C1}
+\definecolor{omLithRhyolite}{HTML}{F3C7B5}
+\definecolor{omLithAndesite}{HTML}{C6B5CE}
+\definecolor{omLithChert}{HTML}{DAD2C3}
+\definecolor{omLithBIF}{HTML}{D98A7A}
+\definecolor{omLithReef}{HTML}{BCDDE9}
+\tikzset{
+  lith migmatite/.style={om lith={omLithMigmatite}{om migmatite}},
+  lith marble/.style={om lith={omLithMarble}{om limestone}},
+  lith quartzite/.style={om lith={omLithQuartzite}{om sand}},
+  lith serpentinite/.style={om lith={omLithSerpentinite}{om schist}},
+  lith tuff/.style={om lith={omLithTuff}{om tuff}},
+  lith rhyolite/.style={om lith={omLithRhyolite}{om basalt}},
+  lith andesite/.style={om lith={omLithAndesite}{om basalt}},
+  lith chert/.style={om lith={omLithChert}{om chert}},
+  lith banded iron/.style={om lith={omLithBIF}{om banded iron}},
+  lith reef limestone/.style={om lith={omLithReef}{om reef}},
+}
+
+% Sync 3 (Book 5): multi-panel plots, astronomical masses and radii, units.
+\usepgfplotslibrary{groupplots}
+\newcommand{\Msun}{\ensuremath{M_{\odot}}}
+\newcommand{\Mearth}{\ensuremath{M_{\oplus}}}
+\newcommand{\Rearth}{\ensuremath{R_{\oplus}}}
+\newcommand{\Mjup}{\ensuremath{M_{\mathrm{J}}}}
+\newcommand{\Rjup}{\ensuremath{R_{\mathrm{J}}}}
+\DeclareSIUnit{\dex}{dex}
+\DeclareSIUnit{\darcy}{D}

@@ -1,0 +1,125 @@
+name: Build and Release PDFs
+
+# Every edition builds in its own job, all in parallel; a final job collects
+# the PDFs and creates the release, so the run takes about as long as the
+# slowest edition. A new edition (a translation) is registered in CI by adding
+# its slug to `matrix.edition` below and nowhere else in this file.
+#
+# A manual run (Actions tab, or `gh workflow run release.yml --ref main`)
+# builds every edition and keeps the PDFs as run artifacts, without making a
+# release: the way to test a build before tagging.
+#
+# The figure tables (figdata/out/*.dat) are committed, so CI needs no Python:
+# it only runs LaTeX.
+
+on:
+  push:
+    tags:
+      - 'v*'            # triggers on tags like v0.0.1, v1.2.3
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.edition }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      # Let every edition finish: one run then reports all broken editions,
+      # instead of the first one hiding the rest.
+      fail-fast: false
+      matrix:
+        # One entry file per edition, without .tex, in latexmkrc's order.
+        edition:
+          - one_earth_and_space_sciences_book_1_primary_middle_school
+          - one_earth_and_space_sciences_book_2_high_school
+          - one_earth_and_space_sciences_book_3_university_year_1
+          - one_earth_and_space_sciences_book_4_university_year_2
+          - one_earth_and_space_sciences_book_5_university_year_3
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0            # need the tag's metadata for its date
+
+      - name: Generate version info
+        run: |
+          DATE=$(git for-each-ref --format='%(creatordate:short)' "refs/tags/${GITHUB_REF_NAME}")
+          # A manual run is not on a tag: stamp the commit date instead.
+          DATE=${DATE:-$(git log -1 --format=%cs)}
+          printf '\\renewcommand{\\bookdate}{%s}\n'    "$DATE"            >  version.tex
+          printf '\\renewcommand{\\bookversion}{%s}\n' "$GITHUB_REF_NAME" >> version.tex
+
+      - name: Compile LaTeX
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: ${{ matrix.edition }}.tex
+          latexmk_use_lualatex: false
+          # latexmkrc runs pdflatex with raised memory limits (the world maps
+          # exceed pdfTeX's default main memory).
+
+      - name: Check for undefined references
+        run: |
+          ! grep -E "(Reference|Citation).*undefined" "build/${{ matrix.edition }}.log"
+
+      - name: Keep the PDF for the release job
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.edition }}
+          path: build/${{ matrix.edition }}.pdf
+          if-no-files-found: error
+          compression-level: 0      # PDFs are already compressed
+          retention-days: 7
+
+      - name: Disk headroom
+        if: always()
+        run: df -h /
+
+  release:
+    needs: build
+    # Every edition must build: one failure means no release at all.
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # needed to create releases and upload assets
+    steps:
+      - name: Collect the PDFs
+        uses: actions/download-artifact@v4
+        with:
+          path: pdfs
+          pattern: one_earth_and_space_sciences_book_*
+          merge-multiple: true
+
+      - name: Name the PDFs with the version
+        run: |
+          # Glob, not a hardcoded slug list: a new edition is then picked up by
+          # registering it in matrix.edition above and nowhere else.
+          # Each PDF is attached twice: once versioned, once under its plain
+          # slug -- the plain name is what makes
+          # releases/latest/download/<slug>.pdf links permanent.
+          # Move + hard link, never copy: copying multiplies the disk footprint.
+          for pdf in pdfs/one_earth_and_space_sciences_book_*.pdf
+          do
+            slug="$(basename "$pdf" .pdf)"
+            mv "$pdf" "${slug}_${GITHUB_REF_NAME}.pdf"
+            ln "${slug}_${GITHUB_REF_NAME}.pdf" "${slug}.pdf"
+          done
+          ls -la one_earth_and_space_sciences_book_*.pdf
+          df -h /
+
+      - name: Create release and attach PDFs
+        uses: softprops/action-gh-release@v2
+        with:
+          files: one_earth_and_space_sciences_book_*.pdf
+          generate_release_notes: true
+          body: |
+            The **One Earth and Space Sciences Book** series compiled at `${{ github.ref_name }}`.
+            Book 1 covers grades 1–9, Book 2 grades 10–12, and Books 3–5
+            the three university years.
+
+            - **Download**: pick the PDF for your book below. Files without a
+              version suffix are stable names — linking to
+              `releases/latest/download/<name>.pdf` always fetches the newest
+              edition.
+            - Found a mistake? [Open an issue](https://github.com/${{ github.repository }}/issues/new).

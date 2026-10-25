@@ -30,8 +30,9 @@ by the user the same day. The English books are being written by one subagent pe
 binding run file `sources/BATCH_BOOKS_1-5.md`. **All five English books are
 written, verified and closed (2026-10-23): 151 chapters, 2,054 pp — 32 ch. /
 324 pp, 28 / 362, 29 / 452, 31 / 461, 31 / 455; every book 0/0/0, 15 years
-of gates green, 1,046 tests, 1,454 figdata tables byte-stable.** Never committed.
-Not started: translations, the HTML reader, the site.
+of gates green, 1,046 tests, 1,454 figdata tables byte-stable.** **Book 1 ships in
+eight languages since 2026-10-25** (see "Language editions" below); Books 2–5 are
+English only. Not started: translations of Books 2–5, the HTML reader, the site.
 
 - **Books 1–2 never repeat themselves**: every notion has exactly one owner
   chapter across grades 1–12 (`OUTLINE.md` maps); a later chapter recalls it.
@@ -156,5 +157,96 @@ The full record is in `sources/BATCH_BOOKS_1-5.md` and each book's `PROGRESS.md`
 - **One definition per term.** A term defined twice inside the school books,
   or inside the university books, breaks the ownership rule. Check with a
   script over `\index` inside `definition` environments.
+
+## Language editions (Book 1, 2026-10-24/25)
+
+**Book 1 ships in eight languages**: English plus `fr`, `nl`, `es`, `pt`
+(Brazilian), `hi`, `ar` and `id`. That is seven editions, made by one agent
+each in two waves of at most four (user rule): fr/nl/es/pt, then hi/ar/id.
+Every edition scored 96/100, except Arabic at 95.
+- The run file is `sources/TRANSLATION_BOOK_1.md`.
+- What wave 1 found, and what wave 2 was told, is in `sources/WAVE1_FINDINGS.md`.
+- Read the workspace-root `translation_instruction.md` first. Its "Lessons from
+  the first Earth and space translations" section is the generic half of what
+  follows.
+
+| | pages | links / targets |
+|---|---:|---:|
+| `en` | 324 | 6,103 / 137 |
+| `fr` | 340 | 6,003 / 137 |
+| `nl` | 335 | 5,455 / 138 |
+| `es` | 339 | 6,071 / 138 |
+| `pt` | 336 | 6,065 / 138 |
+| `hi` | 313 | 6,156 / 138 |
+| `ar` | 303 | 5,951 / 138 |
+| `id` | 344 | 6,639 / 137 |
+
+Every edition reaches every English target. Five editions also link the
+time-scale definition, which English never reaches.
+- Dutch is lower because it welds compounds.
+- fr/es are low on *weather* (*temps*/*tiempo* also mean time).
+- id/ar are high on *altitude* (one word covers height and altitude).
+
+Every edition's final forced build is clean:
+- 0 errors, 0 undefined, 0 overfull, invalid-in-math 0;
+- `nullfont` 6,633, the English baseline (backticks from blank lines in the
+  map `.dat` tables, harmless); non-backtick "Missing character" 0;
+- `.fls` = 64 = the files on disk.
+
+`check_translation.sh` is green for every grade × language, and the linker
+dry run is 0 everywhere.
+
+- **Toolchain.** It was ported from chemistry in Step 0: fonts, `styles/lang/*`,
+  `id_apply`, `check_translation.sh` gates 1–13 (gate 4 also counts
+  `inthefield`, `dated` and `scope`; gate 12 checks `% ledger:` ids), the four
+  prose gates, the term configs, the entry files, `latexmkrc`/`release.yml`, and
+  `LANGS`. The compass letters are strings (`\omnameCompassN/E/S/W`). The Arabic
+  amsthm head-bracket fix had been lost in this style and was ported back.
+- **Canon defects found by the translators and fixed** (exact list in
+  `WAVE1_FINDINGS.md` §1 and the coordinator's notes):
+  - superposition credited to Hutton instead of Steno;
+  - wrong values: 1250 km for 1350 km, −90 °C for −86 °C, 1500 m for 1200 m,
+    2 rainy afternoons for 3;
+  - a missing 0.5 % for 6 volcanoes of unknown setting;
+  - Colombo called the capital of Sri Lanka;
+  - two double roundings (6.45 → "≈ 6.5" → "about 6"; 41.5 → "≈ 41 %");
+  - "R. Wright" for T. L. Wright;
+  - `\textbf{20 years}` inside math;
+  - accent escapes (`Utqia\.gvik`, `Vi\~nas` and others);
+  - broken `\index` keys;
+  - "million" inside `\qty` units;
+  - English never linking "date line", and "mouth of a bay" linking the river
+    mouth.
+- **A first canon fix was wrong and was reverted.** A reported "26 March"
+  contradicted the figure, its data and the sibling answers' counting
+  convention. The answer is 25 March.
+- **Figdata tables print English.** Month, era and city names, "1880s" and
+  similar labels come from `.dat` files, so every edition replaced those
+  labels with explicit nodes under a per-range `!draw`. If a `.dat` label
+  table changes, every edition must be updated by hand. The tables are listed
+  in `WAVE1_FINDINGS.md` §2.
+- **Tooling fixed during the run:**
+  - **`id_apply` `!draw`:** it was file-wide and is now per range (a hybrid
+    comparison). That blind spot cost an arrow in es. A three-level calc
+    coordinate is now blanked as node text, and `\\}` is no longer read as
+    an escaped brace.
+  - **`check_latin_prose`:** a whole-word Unicode tokenizer; the duplicate-line
+    floor went from 40 to 12 characters and from 4 to 3 words (it found
+    kept-English lines in two SHIPPED biology editions, now fixed); `\\]` is no
+    longer a math close.
+  - **hi/ar gates:** the compass letter द, `\pgfmath*` arguments, inline
+    `\tikz` and `\tikzset` reduced as drawing code, siunitx quantities reduced
+    to a number placeholder, file-key split macros (`\gfivechart`,
+    `\gsixrock`), and the units hPa and bar.
+  - **Termlinker:** the Part-heading protect now covers every language's word.
+- **Arabic.**
+  - `\omve` prints its factor through `\mbox{\textdir TLT …}`;
+    `\babelsublr` does not work inside a TikZ node.
+  - Latin runs in axis labels need `\babelsublr`.
+  - Mixed node lines need `\foreignlanguage{arabic}{…}` line by line.
+  - The image credits wrap every Latin run.
+- **Local TeX Live has no `french/spanish/dutch/portuguese.ldf`.** The Latin
+  editions build without babel locally (English hyphenation patterns); CI has
+  them.
 
 **Never commit.** Leave the working tree for the user.

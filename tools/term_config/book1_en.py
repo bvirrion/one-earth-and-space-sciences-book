@@ -32,6 +32,9 @@ EXTRA = {
     "convergent boundaries": "def:g7:plate-tectonics:plate-boundary",
     "transform boundaries": "def:g7:plate-tectonics:plate-boundary",
     "intensity scale": "def:g7:earthquakes:intensity",
+    # g6 defines "international date line"; the text always says "date line"
+    # (French wave-1 report, 2026-10-25: English never linked it)
+    "date line": "def:g6:latitude-longitude:date-line",
 }
 DROP = set()
 DERIVED = {}
@@ -39,6 +42,9 @@ PRIMARY_OK = set()
 AMBIG_POLICY = "nearest-preceding"
 
 EXTRA_PROTECT = [
+    # mouth: the source-mouth definition is a river's; a bay's mouth is not
+    # (Dutch wave-1 report, 2026-10-25)
+    r'\bmouth\s+of\s+(?:a|the)\s+bay\b',
     # spring: the season and the steel spring of a seismometer (g7.3)
     r'\b(?:in|to|of|every)\s+spring\b', r'\bhot\s+springs?\b',
     r'\b(?:on\s+a|its|by\s+its|held\s+only\s+by\s+its)\s+spring\b',

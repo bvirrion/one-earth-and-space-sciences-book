@@ -70,8 +70,10 @@ BASE_PROTECT = [
     # (\arrow{->[label][label]}), \chemmove's TikZ code and \omorbs' spins.
     r'\\omperiodictable(?:\[[^\]]*\])?',
     # Earth series: the bold Part headings of a weekend problem
-    # (\noindent\textbf{Part III --- The forcing.}) are headings, never linked
-    r'\\textbf\{Part\s+[IVX]+\b' + GROUP + r'*\}',
+    # (\noindent\textbf{Part III --- The forcing.}) are headings, never linked,
+    # in every edition's word for Part (es and nl linked terms inside them,
+    # Earth Book 1 wave 1, 2026-10-25). Keep the Roman numeral in the heading.
+    r'\\textbf\{(?:Part|Partie|Parte|Deel|Bagian|भाग|الجزء)\s+[IVX]+\b' + GROUP + r'*\}',
     # Earth series: lithology swatches (\omlith{limestone}: the argument is a
     # TikZ style name) and the vertical-exaggeration label's number.
     r'\\(?:omlith|omve|omwx)(?:\[[^\]]*\])?\s*\{' + GROUP + r'*\}',

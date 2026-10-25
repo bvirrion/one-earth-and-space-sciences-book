@@ -17,9 +17,10 @@ ENTRY = {
     5: "one_earth_and_space_sciences_book_5_university_year_3.tex",
 }
 
-# English only for now; a translation adds its code here (and its
-# tools/term_config/book<N>_<lang>.py).
+# Book 1 is being translated (2026-10-24); Books 2-5 are English only. A
+# translation adds its code here (and its tools/term_config/book<N>_<lang>.py).
 LANGS = {n: ("en",) for n in (1, 2, 3, 4, 5)}
+LANGS[1] = ("en", "fr", "nl", "es", "pt", "hi", "ar", "id")
 
 
 def years(book):

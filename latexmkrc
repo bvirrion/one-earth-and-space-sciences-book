@@ -9,6 +9,14 @@ $out_dir = 'build';
     'one_earth_and_space_sciences_book_3_university_year_1.tex',
     'one_earth_and_space_sciences_book_4_university_year_2.tex',
     'one_earth_and_space_sciences_book_5_university_year_3.tex',
+    # Book 1 language editions (2026-10-24)
+    'one_earth_and_space_sciences_book_1_primary_middle_school_fr.tex',
+    'one_earth_and_space_sciences_book_1_primary_middle_school_nl.tex',
+    'one_earth_and_space_sciences_book_1_primary_middle_school_es.tex',
+    'one_earth_and_space_sciences_book_1_primary_middle_school_pt.tex',
+    'one_earth_and_space_sciences_book_1_primary_middle_school_hi.tex',
+    'one_earth_and_space_sciences_book_1_primary_middle_school_ar.tex',
+    'one_earth_and_space_sciences_book_1_primary_middle_school_id.tex',
 );
 # Hindi editions (*_hi.tex) need XeLaTeX for OpenType Devanagari, and Arabic
 # editions (*_ar.tex) need LuaLaTeX for babel's Lua bidi engine (bidi=basic); every other

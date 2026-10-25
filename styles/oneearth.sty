@@ -433,6 +433,17 @@
   %    bytes back already escaped; it explains the bug in full. Loaded at
   %    \begin{document} so that luaotfload has registered the callback.
   \AtBeginDocument{\directlua{dofile('styles/oneearth-glyphinfo.lua')}}%
+  % 6. Statement heads: amsthm sets the head in a list-item label box, and
+  %    babel's bidi=basic never mirrors the brackets in there (the body's
+  %    brackets ARE mirrored) -- so every "Exercise 4.1 (**)." printed with
+  %    its brackets facing OUTWARD. Found by the Arabic chemistry Book 1 agent,
+  %    2026-10-04 (ported here 2026-10-24). No direction switch changes that;
+  %    writing the brackets swapped does. amsthm's own \thmhead@plain, with
+  %    ")#3(" for "(#3)" (\patchcmd cannot retokenise it).
+  \def\thmhead@plain#1#2#3{%
+    \thmname{#1}\thmnumber{\@ifnotempty{#1}{ }\@upn{#2}}%
+    \thmnote{ {\the\thm@notefont)#3(}}}%
+  \let\thmhead\thmhead@plain
 \fi
 
 \setlist[enumerate]{itemsep=1pt,topsep=3pt}
@@ -1039,7 +1050,7 @@
   pics/northarrow/.style={code={
     \fill[black] (0,0) -- (0.18,0.15) -- (0,1) -- cycle;
     \draw[black, line width=0.4pt, fill=white] (0,0) -- (-0.18,0.15) -- (0,1) -- cycle;
-    \node[font=\small\bfseries, above, inner sep=1pt] at (0,1) {N};
+    \node[font=\small\bfseries, above, inner sep=1pt] at (0,1) {\omnameCompassN};
   }},
   pics/scalebar/.style 2 args={code={
     \foreach \om@k in {0,1,2,3} {
@@ -1219,7 +1230,12 @@
     grid style={gray!22, line width=0.3pt},
     every axis label/.append style={font=\small}, tick label style={font=\small}},
 }
-\newcommand{\omve}[1]{{\footnotesize\itshape\omnameVE~$\times#1$}}
+% Arabic: the label is set right to left and the factor printed mirrored
+% ("260\times"). Inside a TikZ node \babelsublr does NOT restore the order
+% (probe, 2026-10-25: prose was fixed, nodes were not); an explicit LR box is
+% needed, and it works in both places (Earth Book 1 ar agent's report).
+\newcommand{\omve}[1]{{\footnotesize\itshape\omnameVE~%
+  \ifom@arabic\mbox{\textdir TLT$\times#1$}\else$\times#1$\fi}}
 
 % amsthm's proof environment prints \proofname, which is English unless babel
 % localises it — and babel is optional here (see above). Without this, a French
@@ -1605,7 +1621,9 @@
 % half black, half white so the rose reads under any rotation. Labels are
 % nodes: with transform shape they scale with the rose.
 \tikzset{pics/compassrose/.style={code={
-  \foreach \om@a/\om@l in {90/N,0/E,270/S,180/W} {
+  % The letters are language strings (styles/lang/<lang>.tex): a French rose
+  % reads N E S O.
+  \foreach \om@a/\om@l in {90/\omnameCompassN,0/\omnameCompassE,270/\omnameCompassS,180/\omnameCompassW} {
     \fill[black] (0,0) -- (\om@a:1) -- (\om@a+45:0.2) -- cycle;
     \draw[black, line width=0.4pt, fill=white] (0,0) -- (\om@a:1) -- (\om@a-45:0.2) -- cycle;
     \node[font=\small\bfseries, inner sep=1pt] at (\om@a:1.22) {\om@l};

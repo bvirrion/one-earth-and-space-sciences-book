@@ -1100,5 +1100,17 @@ ALLOWED_UNITS |= {"bar"}
 # Latin in every script like mmHg and bar, and not an English word.
 ALLOWED_UNITS |= {"hpa"}
 
+# Earth Book 2 grade-11/06 (hi agent, 2026-10-26): "NNR-MORVEL56", the name
+# of the published plate-velocity model (Argus, Gordon and DeMets 2011) cited
+# in a data credit, identical to English, like PB2002 and ETOPO1. A dataset
+# name, not an English word (Book 2 hi).
+ALLOWED_WORDS |= {"nnr-morvel"}
+
+# Earth Book 2 grade-11/07 (hi agent, 2026-10-26): "webmineral.com", the
+# Mineralogy Database website cited as the source of formulas and densities in
+# a table note and a caption, printed as its address, identical to English
+# (Book 2 hi).
+ALLOWED_WORDS |= {"webmineral"}
+
 if __name__ == "__main__":
     sys.exit(main())

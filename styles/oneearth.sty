@@ -444,6 +444,38 @@
     \thmname{#1}\thmnumber{\@ifnotempty{#1}{ }\@upn{#2}}%
     \thmnote{ {\the\thm@notefont)#3(}}}%
   \let\thmhead\thmhead@plain
+  % 7. An empty line before every breakable box. A breakable tcolorbox opens
+  %    a paragraph only to apply \parskip and closes it at once, and TeX
+  %    drops an empty paragraph. But babel's tcolorbox hook sets \textdir
+  %    TLT in vertical mode, LuaTeX replays that direction into the next
+  %    paragraph as a dir node, and the paragraph is no longer empty: a
+  %    zero-height line is left before the box. Mostly it only adds a
+  %    \baselineskip. At the foot of a page it moved to the next page, and
+  %    the \pagebreak that follows when the box does not fit shipped it
+  %    alone: two blank pages in the Arabic Book 2 (2026-10-26). Remove the
+  %    dir nodes from that paragraph only when it holds nothing else.
+  \directlua{
+    function oneearth_drop_empty_par()
+      local top = tex.nest.top
+      local DIR, LPAR = node.id('dir'), node.id('local_par')
+      local n = top.head.next
+      while n do
+        if not (n.id == DIR or n.id == LPAR) then return end
+        n = n.next
+      end
+      n = top.head.next
+      while n do
+        local nx = n.next
+        if n.id == DIR then top.head = node.remove(top.head, n) end
+        n = nx
+      end
+      top.tail = node.tail(top.head)
+    end
+  }%
+  \patchcmd{\tcb@prepare@break@operation}{\noindent\vskip\lineskip}%
+    {\noindent\ifhmode\directlua{oneearth_drop_empty_par()}\fi\vskip\lineskip}%
+    {}{\PackageWarning{oneearth}{Could not patch tcolorbox's breakable
+      start: Arabic boxes may leave empty lines and blank pages}}%
 \fi
 
 \setlist[enumerate]{itemsep=1pt,topsep=3pt}
@@ -724,26 +756,26 @@
 % while parsing key names, and a \om@statementrule{...} in there is read as
 % one long unknown key ("I do not know the key '/tcb/borderline west=...'").
 \ifom@arabic
-\newcommand{\omdecorate}[2]{%
-  \tcolorboxenvironment{#1}{%
+\newcommand{\omdecorate}[3][]{%
+  \tcolorboxenvironment{#2}{%
     enhanced jigsaw, breakable, frame hidden,
     boxrule=0pt, sharp corners,
-    borderline east={2pt}{0pt}{#2},
+    borderline east={2pt}{0pt}{#3},
     left=4pt, right=8pt, top=4pt, bottom=4pt,
     before skip=10pt, after skip=10pt,
     lines before break=5,
-    colback=#2!4!white}%
+    colback=#3!4!white,#1}%
 }
 \else
-\newcommand{\omdecorate}[2]{%
-  \tcolorboxenvironment{#1}{%
+\newcommand{\omdecorate}[3][]{%
+  \tcolorboxenvironment{#2}{%
     enhanced jigsaw, breakable, frame hidden,
     boxrule=0pt, sharp corners,
-    borderline west={2pt}{0pt}{#2},
+    borderline west={2pt}{0pt}{#3},
     left=8pt, right=4pt, top=4pt, bottom=4pt,
     before skip=10pt, after skip=10pt,
     lines before break=5,
-    colback=#2!4!white}%
+    colback=#3!4!white,#1}%
 }
 \fi
 \omdecorate{definition}{omDef}
@@ -753,7 +785,40 @@
 \omdecorate{corollary}{omProp}
 \omdecorate{method}{omMeth}
 \omdecorate{exercise}{omExo}
-\omdecorate{problem}{omExo}
+
+% Every weekend problem starts on a fresh page (user ruling, 2026-10-26).
+% The box is breakable, but tcolorbox needs `lines before break' of it to
+% fit, so a problem that could not start at the foot of a page used to move
+% on and leave its \section heading stranded above blank space, sometimes
+% alone on a page. A problem with its own heading breaks the page BEFORE that
+% heading: \section looks ahead, past blank lines, for \begin{problem}. A
+% problem with no heading of its own (it follows the last exercise) breaks
+% the page right before its box. No chapter file changes, in any language.
+\newif\ifom@problemsec
+\let\om@origsection\section
+\renewcommand{\section}{\@ifstar
+  {\om@sec@grab{\om@origsection*}}%
+  {\@ifnextchar[{\om@sec@opt}{\om@sec@grab{\om@origsection}}}}
+\def\om@sec@opt[#1]{\om@sec@grab{\om@origsection[#1]}}
+\long\def\om@sec@grab#1#2{%
+  \def\om@sec@emit{#1{#2}}\let\om@sec@pars\@empty\om@sec@peek}
+\def\om@sec@peek{\@ifnextchar\par{\om@sec@eatpar}%
+  {\@ifnextchar\begin{\om@sec@checkbegin}{\om@sec@emit\om@sec@pars}}}
+\def\om@sec@eatpar\par{\def\om@sec@pars{\par}\om@sec@peek}
+\def\om@str@problem{problem}
+\def\om@sec@checkbegin\begin#1{%
+  \def\om@tmp{#1}%
+  \ifx\om@tmp\om@str@problem\clearpage\global\om@problemsectrue\fi
+  \om@sec@emit\om@sec@pars\begin{#1}}
+\BeforeBeginEnvironment{problem}{%
+  \ifom@problemsec\global\om@problemsecfalse\@nobreakfalse\else\clearpage\fi}
+% Decorate AFTER the hook above: tcolorbox wraps the environment through the
+% same before-hook, and a \clearpage run inside an already-open box leaves a
+% discarded zero-height first part ("Discard zero height first box part").
+% A problem may split after its first two lines: with the default five, a
+% box whose text before its first figure is shorter moves on whole and leaves
+% its heading alone at the top of the fresh page.
+\omdecorate[lines before break=2]{problem}{omExo}
 
 % ----------------------------------------------------------------------------
 % Earth and space sciences
@@ -764,6 +829,19 @@
 % ----------------------------------------------------------------------------
 \RequirePackage[version=4]{mhchem}
 \ifom@unicodeface\selectchemgreekmapping{default}\fi
+% Arabic: an inline \ce in RTL text is several directional runs, and babel's
+% bidi=basic laid them out right to left ("2H2O --> O2 + 2H2", the arrow still
+% pointing right; "Cu(s)" as ")s(Cu"), with nothing in the log. Ported from
+% one-chemistry-book (2026-10-25, for Book 2, the first volume of this series
+% with \ce): babel's \babelsublr around every \ce in text (in math it is
+% already one run). mhchem's \ce is a robust wrapper around the inner macro
+% "\ce " (with a space): redefine that one, not \ce itself.
+\ifom@arabic
+  \AtBeginDocument{%
+    \expandafter\long\expandafter\def\csname ce \endcsname#1{%
+      \ifmmode\mhchem@cee{#1}\else\babelsublr{\mhchem@cee{#1}}\fi}%
+  }
+\fi
 
 % Three-dimensional drawings (block diagrams, the celestial sphere, orbits):
 % \tdplotsetmaincoords{<theta>}{<phi>} then [tdplot_main_coords].
@@ -1462,7 +1540,12 @@
 }
 \newcommand{\omsollink@emit}{%
   \ifdefempty{\omsollink@key}{}{%
-    \par\nopagebreak\smallskip
+    % Keep the link with the last line. A closing list leaves a penalty and
+    % its \topsep glue, both legal breaks BEFORE a plain \nopagebreak, and the
+    % link was left alone on a fresh page: lift them, forbid the break, and
+    % put the same glue back.
+    \par\@tempskipa\lastskip\unskip\unpenalty\nopagebreak\vskip\@tempskipa
+    \nopagebreak\smallskip
     \noindent\hfill{\footnotesize\itshape
       \hyperref[sol:\omsollink@key]{\omnameGotoSolution~\pageref{sol:\omsollink@key}}}%
     \par

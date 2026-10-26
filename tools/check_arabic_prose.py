@@ -1581,5 +1581,29 @@ ATTRIBUTION_EXTRA = re.compile(ATTRIBUTION_EXTRA.pattern + r"|Johnston9494")
 # every script (mirrored by the coordinator from the hi gate, 2026-10-25).
 ALLOWED_UNITS |= {"hpa"}
 
+# Earth Book 2 grade-11/06 credits its plate-speed chart to the plate-motion
+# model "NNR-MORVEL56" (Argus, Gordon and DeMets 2011), a dataset name like
+# ETOPO1 and PB2002, printed in Latin in every script. LATIN_WORD takes the
+# hyphenated name as ONE token, so both parts must be allowed. "morvel" is
+# not an English word. Book 2 ar: added by the Arabic Earth and Space
+# Sciences Book 2 agent, 2026-10-26.
+ALLOWED_WORDS |= {"nnr", "morvel"}
+
+# Earth Book 2 grade-11/07 credits two thin-section photographs to the Commons
+# account "Chmee2", the licence's required attribution: an account handle
+# cannot be transliterated without breaking the credit (same case as
+# Johnston9494 above). LATIN_WORD stops at the digit, so the token is "Chmee",
+# not an English word. Book 2 ar: added by the Arabic Earth and Space
+# Sciences Book 2 agent, 2026-10-26.
+ALLOWED_WORDS |= {"chmee"}
+
+# Earth Book 2 grade-12/02 credits its India-drift chart to the "GPlates Web
+# Service", the plate-reconstruction software that computed the latitudes (its
+# own name, printed in Latin in every script, like ETOPO1 and PB2002). "gplates"
+# is not an English word; "web" and "service" stay gated and are translated.
+# Book 2 ar: added by the Arabic Earth and Space Sciences Book 2 agent,
+# 2026-10-26.
+ALLOWED_WORDS |= {"gplates"}
+
 if __name__ == "__main__":
     sys.exit(main())

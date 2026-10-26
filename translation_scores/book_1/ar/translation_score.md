@@ -138,3 +138,7 @@ Changes the coordinator made:
 - **Canon.** g9/02 solution 5 now prints "= 41.5 %" (this edition mirrored). The g7/02 problem-8 intermediate rounding was left as is: the answer does not change, and problem 7 has the same pattern.
 
 The score is unchanged.
+
+## Coordinator amendments (2026-10-26, after the Book 2 run)
+
+- Leading-run reversal (found in Book 2): 9 labels fixed with `\mbox{\textdir TLT …}` around the leading run. g7/05 calendar: "52 مارس", "81 نوفمبر", "62 ديسمبر" printed for 25 March, 18 November, 26 December (11 February boxed too); g8/02 wind belts: four `\ang` latitudes printed "°60 ش"; g9/01 table: "\qty{3.2}{mm} في السنة" printed "mm 3.2". Rebuilt 303 pp 0/0/0, every fixed label re-read on its page, grades 6–9 gates green. See `sources/WAVE2_FINDINGS_B2.md` §3a.

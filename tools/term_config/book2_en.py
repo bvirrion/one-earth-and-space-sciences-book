@@ -37,6 +37,16 @@ EXTRA = {
     "scenario": "def:g12:climate-change:scenario",
     "scenarios": "def:g12:climate-change:scenario",
     "climate sensitivity": "def:g12:climate-change:ecs",
+    # g11 minerals: the definition opens on the capitalised display "Cleavage",
+    # so the lowercase noun (30 sites, all the mineral sense) never linked
+    # (es Book 2 agent, 2026-10-25)
+    "cleavage": "def:g11:minerals:cleavage",
+    "cleavages": "def:g11:minerals:cleavage",
+    # g11 subduction solutions: the defined force in other words (es agent)
+    "pull of the sinking slab": "def:g11:subduction-zones:slab-pull",
+    # g11 fossil fuels: the definition opens on capitalised "Migration", so the
+    # lowercase noun never linked (pt agent); Book 2 uses it in no other sense
+    "migration": "def:g11:fossil-fuel-geology:migration",
 }
 DROP = set()
 DERIVED = {}
@@ -57,6 +67,16 @@ EXTRA_PROTECT = [
     # proper names: the Last Interglacial (an AR6 reference period), the Glarus
     # and McConnell thrusts (named faults)
     r'\bLast\s+Interglacial\b', r'\b(?:Glarus|McConnell)\s+Thrust\b',
+    # slab: a slab of rock (the black-shale specimen of g11.09 and its caption),
+    # not the subducting slab (pt Book 2 agent, 2026-10-25)
+    r'\bslab\s+of\s+black\s+shale\b', r'\bthe\s+slab\s+is\s+about\b',
+    # heat flow: the verb "heat flows out of / from hot to cold" (g12.06), not
+    # the measured quantity (pt agent)
+    r'\b[Hh]eat\s+flows\s+(?:out|from)\b',
+    # slab pull: "its slab pulls it down" (g12.02) and "the whole slab pulls"
+    # (g11.06 solutions) are a noun and a verb, not the term (nl Book 2 agent,
+    # 2026-10-25)
+    r'\bslab\s+pulls\b',
     # run-in paragraph headings stay unlinked, like section titles
     r'\\paragraph\{[^{}]*\}',
 ]

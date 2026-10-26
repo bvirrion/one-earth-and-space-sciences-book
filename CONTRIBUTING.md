@@ -139,7 +139,10 @@ a defined term:
    - grades 10--12: exactly 15 exercises (5 ★, 6 ★★, 4 ★★★) and a weekend
      problem of 18--22 questions (Parts I--IV) ending on a named number;
    - university years: exactly 12 exercises (4 ★, 5 ★★, 3 ★★★) and a weekend
-     problem of 22--28 questions (Parts I--IV) ending on a named number.
+     problem of 22--28 questions (Parts I--IV) ending on a named number;
+   - every weekend problem starts on a fresh page, together with its
+     `\section` heading if it has one. The style does this; write no
+     `\clearpage` or `\newpage` in a chapter.
 4. **English text** for an international audience; no curriculum or country
    school-system names in student-facing text (real places are named freely).
 5. Quotation marks are `` ``...'' ``, never the straight `"`.

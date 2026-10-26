@@ -31,8 +31,9 @@ binding run file `sources/BATCH_BOOKS_1-5.md`. **All five English books are
 written, verified and closed (2026-10-23): 151 chapters, 2,054 pp — 32 ch. /
 324 pp, 28 / 362, 29 / 452, 31 / 461, 31 / 455; every book 0/0/0, 15 years
 of gates green, 1,046 tests, 1,454 figdata tables byte-stable.** **Book 1 ships in
-eight languages since 2026-10-25** (see "Language editions" below); Books 2–5 are
-English only. Not started: translations of Books 2–5, the HTML reader, the site.
+eight languages since 2026-10-25 and Book 2 since 2026-10-26** (see "Language
+editions" below); Books 3–5 are English only. Not started: translations of
+Books 3–5, the HTML reader, the site.
 
 - **Books 1–2 never repeat themselves**: every notion has exactly one owner
   chapter across grades 1–12 (`OUTLINE.md` maps); a later chapter recalls it.
@@ -115,6 +116,22 @@ pgfplots styles `omrecord`, `omage`, `omdepth`, `ommap`, `omsection` +
 `\omve{N}`, `ompt`, ternary library; units `\Ma`, `\Ga`, `\ka`, `\Myr`,
 `\au`, `\lightyear`, `\parsec`, `\permil`, `\hPa`, `\ppm`, `\ppb`.
 
+**Weekend problems start on a fresh page** (user ruling, 2026-10-26). A
+problem box needs `lines before break` of room to start, so a problem that
+could not start at the foot of a page used to move on and leave its
+`\section` heading stranded, sometimes alone on a page (found in Book 1). The
+style now breaks the page before the heading: `\section` looks ahead, past
+blank lines, for `\begin{problem}`. A problem with no heading of its own
+breaks the page right before its box. No chapter file changed, in any
+language. A companion fix keeps each "Solution p. N" link with its
+exercise's last line (`\omsollink@emit`): a closing list had left the link
+alone on a fresh page. After both, the five English books build at 329, 367,
+475, 484 and 477 pp. They were 324, 362, 452, 461 and 455 pp when closed;
+Books 3–5 were not measured between the two dates. Side effect: an
+exercise's last line and its link can spill onto a short page of their own
+before the problem. That happens on about ten pages over all nineteen
+editions.
+
 ## Traps met while setting up (2026-10-22)
 
 - `\textperthousand` inside a siunitx unit printed "Ğ": the unit is set in
@@ -172,14 +189,18 @@ Every edition scored 96/100, except Arabic at 95.
 
 | | pages | links / targets |
 |---|---:|---:|
-| `en` | 324 | 6,103 / 137 |
+| `en` | 329 | 6,103 / 137 |
 | `fr` | 340 | 6,003 / 137 |
-| `nl` | 335 | 5,455 / 138 |
+| `nl` | 340 | 5,455 / 138 |
 | `es` | 339 | 6,071 / 138 |
-| `pt` | 336 | 6,065 / 138 |
-| `hi` | 313 | 6,156 / 138 |
-| `ar` | 303 | 5,951 / 138 |
-| `id` | 344 | 6,639 / 137 |
+| `pt` | 339 | 6,065 / 138 |
+| `hi` | 319 | 6,156 / 138 |
+| `ar` | 306 | 5,951 / 138 |
+| `id` | 351 | 6,639 / 137 |
+
+Pages are from the 2026-10-26 TeX Live 2026 rebuild (as CI builds them), after
+weekend problems began opening on a fresh page (see "Weekend problems" above). At delivery they were 324,
+340, 335, 339, 336, 313, 303 and 344.
 
 Every edition reaches every English target. Five editions also link the
 time-scale definition, which English never reaches.
@@ -245,8 +266,109 @@ dry run is 0 everywhere.
   - Latin runs in axis labels need `\babelsublr`.
   - Mixed node lines need `\foreignlanguage{arabic}{…}` line by line.
   - The image credits wrap every Latin run.
-- **Local TeX Live has no `french/spanish/dutch/portuguese.ldf`.** The Latin
-  editions build without babel locally (English hyphenation patterns); CI has
-  them.
+- **Local TeX Live has no `french/spanish/dutch/portuguese.ldf`.** The
+  system TeX Live (2022) builds the Latin editions without babel, with English
+  hyphenation. It only warns "building French without babel". CI's
+  `texlive-full` is TeX Live 2026 with every `.ldf`, so the PDFs CI ships
+  break lines differently from the ones checked locally. **Verify with
+  `~/texlive/2026`** (scheme-full, the same pdfTeX 1.40.29 and latexmk 4.88 as
+  CI): put `~/texlive/2026/bin/x86_64-linux` first in `PATH`. The release of
+  Book 1 (`v0.0.3`, 2026-10-25) failed in CI on exactly this gap (next item).
+  The TeX Live 2026 rebuild also found four overfull lines that hyphenation
+  had hidden. They are fixed by rewording in fr/es, and by `\allowbreak` after
+  the slashes of "NASA/METI/AIST/Japan" in the fr/es image credits.
+- **`\textsuperscript` inside a pgfplots axis node (TeX Live 2026).** The
+  2025+ kernel's `\textsuperscript` runs `\check@mathfonts`. If it has already
+  been used in prose and the picture sets a smaller `font=`, a `\node` inside
+  `axis` that uses it again fails with "Package tikz Error: Giving up on this
+  path. Did you forget a semicolon?" at `\end{axis}`. This has nothing to do
+  with babel: English fails the same way, and TeX Live 2022 builds it. Brace
+  the call: `{1\textsuperscript{er}}`. The only site was the French calendar
+  of g7/05.
+
+## Language editions (Book 2, 2026-10-25/26)
+
+**Book 2 ships in the same eight languages.** One agent made each edition, in
+two waves (fr/nl/es/pt, then hi/ar/id):
+- the run file is `sources/TRANSLATION_BOOK_2.md`;
+- the findings are in `sources/WAVE1_FINDINGS_B2.md` and
+  `sources/WAVE2_FINDINGS_B2.md`, which also holds the complete list of canon
+  edits made after wave 1.
+
+| | pages | links / targets | score |
+|---|---:|---:|---:|
+| `en` | 367 | 2,208 / 136 | |
+| `fr` | 387 | 2,263 / 138 | 96 |
+| `nl` | 387 | 2,094 / 136 | 96 |
+| `es` | 385 | 2,168 / 138 | 96 |
+| `pt` | 382 | 2,249 / 137 | 96 |
+| `hi` | 349 | 2,250 / 138 | 96 |
+| `ar` | 334 | 2,137 / 137 | 95 |
+| `id` | 393 | 2,345 / 139 | 96 |
+
+Pages are from the 2026-10-26 TeX Live 2026 rebuild, as CI builds them
+(fresh-page problems, and the Arabic empty-line fix). At delivery they were 362, 380, 374, 375, 373, 345, 334 and
+379.
+
+All eight builds are 0/0/0, nullfont 3,291 (the English baseline), and the
+`.fls` lists 56 translated files, the same as on disk. All 21 grade ×
+language gates pass, and the linker dry run is 0 everywhere.
+
+**Infrastructure.** Book 2 needed only entry files, credits stand-ins,
+directories, seven term-config stubs and `LANGS[2]`, plus three changes:
+- the Arabic inline-`\ce` LTR wrap, ported from chemistry into
+  `styles/oneearth.sty`;
+- `check_latin_prose` reading `\\` as a separator;
+- a few prose-gate allow-list entries.
+
+**Canon fixes.** About twenty were made, and all were mirrored into every
+edition.
+- **Units.** 36 unit words were moved out of `\qty`. A `\qty` without a
+  unit takes the next letter as its unit: in French, `\qty{35} à` crashed
+  the build.
+- **Escapes and keys.** Accent escapes were replaced, and six line-broken
+  `\index` keys joined.
+- **Credits.** A credit line that cited Wikipedia now names the figure's real
+  sources.
+- **Arithmetic.** Four values had been computed from unrounded intermediates.
+- **An answer contradicting its sibling.** g11 solutions/08 answer 16 said
+  "between the two" when the previous answer's 2.6 years lies inside the
+  intrusion range.
+- **A name.** "Motonari" became Motonori Matuyama.
+- **A clipped chart label.** The g12/02 fold-shortening chart cut off
+  "Varden:".
+
+**Traps:**
+- **Capital-harvest.** It struck *cleavage*, *migration* (English and nl) and
+  *slab pull* (nl). Audit every capitalised definition, in every language.
+- **Wrong-sense links.** *slab* (a slab of shale), *slab pull* (the verb) and
+  *heat flow* (the verb) each linked in the wrong sense; they are now
+  protected.
+- **Titles.** A paper title, and any gloss a translator adds to it, never
+  links.
+- **Protect anchors.** A protect without `(?<!\w)` matched inside a longer
+  Arabic word and removed 22 links.
+- **Labels on translated charts.** Translated labels are longer: every wave-1
+  edition found collisions on rendered pages. Fix them inside the node text.
+- **Arabic right-to-left.** A leading number or Latin word reverses (15 → 51)
+  in three places: inside `\foreignlanguage{arabic}{…}` in a one-line node,
+  tick label or legend entry; at the start of an axis label; and in a leading
+  `\ang`/`\qty{…}{\degree}` ("°60"). Box the leading run only, with
+  `\mbox{\textdir TLT …}`. A probe and a sweep on 2026-10-26 fixed 9 sites in
+  Book 1 Arabic (the shipped calendar printed "52 مارس" for 25 March) and 4 in
+  Book 2 (`WAVE2_FINDINGS_B2.md` §3a).
+- **Blank Arabic pages.** Babel's tcolorbox hook left a zero-height empty
+  line before every breakable box in Arabic, and at a page foot tcolorbox's
+  `\pagebreak` shipped that line alone: two header-only pages in Book 2.
+  No log message comes with them. Fixed in `styles/oneearth.sty` (Arabic
+  block, item 7). Scan every Arabic PDF for pages that hold only the running
+  header and the page number.
+- **A label lost at a page break.** A tcolorbox zero-height part dropped a
+  label at a page break; grep every log for "Discard zero height".
+- **Million-year units.** English writes Ma for a date and Myr for a
+  duration (`\Ma`, `\Myr`). fr and id use Ma for both, in prose and in
+  formulas. The other editions keep English's split. A `\qty` inside math is
+  frozen by the math census, so a language that switches units must also
+  switch the formulas (`--force-classes math`), or its pages mix the two.
 
 **Never commit.** Leave the working tree for the user.

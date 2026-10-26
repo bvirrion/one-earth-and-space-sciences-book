@@ -212,6 +212,12 @@ def _strip_nonprose(s):
     Book 4 agents (fr/nl/es/pt) 2026-09-16; reconstructed after the original
     fix was lost, so the wording of the original may have differed.
     """
+    # A TeX line break is a separator, not the start of a macro name: node
+    # text "{340\\incoming}" left "\incoming" for the macro strip below, so the
+    # one English word of the label vanished and the fragment was never
+    # reported. ~95 multi-line node labels in Earth Book 2 (2026-10-25,
+    # coordinator, before wave 1). The optional skip "\\[2pt]" goes with it.
+    s = re.sub(r"\\\\(?:\[[^\]]*\])?", " ", s)
     # tabular's column spec nests one level: {l@{\ }ccccc}. A plain
     # {[^{}]*} stops at the inner brace and leaves "ccccc" standing.
     s = re.sub(r"\\begin\s*\{tabular\*?\}\s*\{(?:[^{}]|\{[^{}]*\})*\}", " ", s)
@@ -962,6 +968,49 @@ ALLOWED_BY_LANG["nl"] |= {"warmer", "land"}
 # never printed and identical in every edition, land in the blocking
 # "foreach" tier in id too (see the es entry).
 ALLOWED_BY_LANG["id"] |= {"gran", "bas", "sand", "slat", "shal"}
+
+# Appended by the Spanish Earth & Space Book 2 agent, 2026-10-25: the grade-12
+# fold block diagram (02-mountain-building, lines 224 and 237) fills its layers
+# with two \foreach lists that pair heights with COLOUR NAMES,
+# {0.0/bandB, ...} and {0.0/0.6/bandB, ...}. They are never printed and are
+# identical in every edition by design, but the slash fields put them in the
+# BLOCKING foreach tier; the colour names are the only "words" it sees. The
+# other Latin-script editions will meet the same two lists. Book 2 es
+ALLOWED_BY_LANG["es"] |= {"bandB", "bandC", "bandD", "bandE", "bandF"}
+
+# Appended by the Portuguese Earth & Space Book 2 agent, 2026-10-25: the same
+# grade-12 fold block diagram (02-mountain-building, lines 223 and 236 of the
+# pt file) and its two \foreach lists of heights paired with COLOUR NAMES
+# ({0.0/bandB, ...}, {0.0/0.6/bandB, ...}): never printed, identical in every
+# edition by design, in the BLOCKING foreach tier (see the es entry). Book 2 pt
+ALLOWED_BY_LANG["pt"] |= {"bandB", "bandC", "bandD", "bandE", "bandF"}
+
+# Appended by the French Earth & Space Book 2 agent, 2026-10-25: (1) the same
+# grade-12 fold block diagram (02-mountain-building, lines 231 and 244 of the
+# fr file) and its two \foreach lists of heights paired with COLOUR NAMES
+# ({0.0/bandB, ...}, {0.0/0.6/bandB, ...}): never printed, identical in every
+# edition by design, in the BLOCKING foreach tier (see the es entry). (2) The
+# Varden-granite isochron label {plagioclase,\\hornblende} (07-age-of-the-earth,
+# line 279 of the fr file): both mineral names are spelled exactly so in
+# French ("le plagioclase", "la hornblende"), so the node is translated and
+# merely identical; its two words put it in the BLOCKING node tier. Book 2 fr
+ALLOWED_BY_LANG["fr"] |= {"bandB", "bandC", "bandD", "bandE", "bandF",
+                          "plagioclase", "hornblende"}
+
+# Appended by the Dutch Earth & Space Book 2 agent, 2026-10-25: the same
+# grade-12 fold block diagram (02-mountain-building, lines 219 and 232 of the
+# nl file) and its two \foreach lists of heights paired with COLOUR NAMES
+# ({0.0/bandB, ...}, {0.0/0.6/bandB, ...}): never printed, identical in every
+# edition by design, in the BLOCKING foreach tier (see the es entry). Book 2 nl
+ALLOWED_BY_LANG["nl"] |= {"bandB", "bandC", "bandD", "bandE", "bandF"}
+
+# Appended (append-only) by the Indonesian Earth & space Book 2 agent,
+# 2026-10-26: the same grade-12 fold block diagram (02-mountain-building, lines
+# 224 and 237 of the id file) and its two \foreach lists of heights paired with
+# COLOUR NAMES ({0.0/bandB, ...}, {0.0/0.6/bandB, ...}): never printed,
+# identical in every edition by design, in the BLOCKING foreach tier (see the es
+# entry). Book 2 id
+ALLOWED_BY_LANG["id"] |= {"bandB", "bandC", "bandD", "bandE", "bandF"}
 
 if __name__ == "__main__":
     sys.exit(main())

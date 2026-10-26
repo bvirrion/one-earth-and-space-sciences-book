@@ -1365,5 +1365,92 @@ ATTRIBUTION = re.compile(ATTRIBUTION.pattern
 ATTRIBUTION = re.compile(ATTRIBUTION.pattern
                          + r"|EROS\s+Data\s+Center|Visible\s+Earth")
 
+# A MISSION NAME printed as named: the Mars rover "Curiosity" (Earth & space
+# Book 2 ch. 10.2, the Mount Sharp photograph). Case-sensitive, so the
+# English noun "curiosity" stays gated (-ity). Appended (append-only) by the
+# Indonesian Earth & space Book 2 agent, 2026-10-25.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|\bCuriosity\b")
+
+# A PERSON'S NAME inside a quantity name: the "Bond albedo" (after the
+# astronomer G. P. Bond) is "albedo Bond" in Indonesian, and "Bond" fires
+# the English word "bond" (ikatan) after .lower() (Earth & space Book 2
+# ch. 10.2-10.3). Only the two-word phrase is blanked; "bond" stays gated.
+# Appended (append-only) by the Indonesian Earth & space Book 2 agent,
+# 2026-10-25.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|[Aa]lbedo\s+Bond\b")
+
+# WORK TITLES and a SHIP NAME printed as published (Earth & space Book 2
+# ch. 11.1, the history of seafloor spreading): Hess's paper "\emph{History of
+# Ocean Basins}" (1962), Vine and Matthews's "\emph{Magnetic anomalies over
+# oceanic ridges}" (Nature, 1963) and the drilling ship "\emph{JOIDES
+# Resolution}". Titles and names are not translatable prose; the words around
+# them are translated and stay gated. Same reasoning as "This Dynamic Earth"
+# above. Appended (append-only) by the Indonesian Earth & space Book 2 agent,
+# 2026-10-25.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern
+                         + r"|History\s+of\s+Ocean\s+Basins"
+                         + r"|Magnetic\s+anomalies\s+over\s+oceanic\s+ridges"
+                         + r"|JOIDES\s+Resolution")
+
+# TOOL FIX for the Book 1 institution entry above: its pattern
+# "Texas\s+A\\?&M\s+University" can never match, because visible_text()
+# drops the escaped ampersand and the gate sees "Texas AM University". The
+# name is printed by the canon in the JOIDES Resolution photo credit (Earth &
+# space Book 2 ch. 11.1). This alternative accepts the reduced form; the
+# words around it stay gated. Appended (append-only) by the Indonesian Earth &
+# space Book 2 agent, 2026-10-25.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Texas\s+A&?M\s+University")
+
+# A PLACE NAME and a WORK TITLE printed as named (Earth & space Book 2
+# ch. 11.8, igneous rocks): the "Giant's Causeway" (Northern Ireland), which
+# has no established Indonesian name, and Bowen's book "\emph{The Evolution
+# of the Igneous Rocks}" (1928). Same reasoning as "Birling Gap" and "History
+# of Ocean Basins" above; the words around them stay gated. Appended
+# (append-only) by the Indonesian Earth & space Book 2 agent, 2026-10-26.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern
+                         + r"|Giant's\s+Causeway"
+                         + r"|The\s+Evolution\s+of\s+the\s+Igneous\s+Rocks")
+
+# Two PERSONS' SURNAMES that are English words, printed in citations (Earth &
+# space Book 2 ch. 12.1): the geophysicist R. S. White ("White, McKenzie dan
+# O'Nions (1992)") and the photographer Chris Light. Only the name in its
+# citation context is blanked; "white" and "light" stay gated everywhere else.
+# Appended (append-only) by the Indonesian Earth & space Book 2 agent,
+# 2026-10-26.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern
+                         + r"|\bWhite,\s+McKenzie\b|\bChris\s+Light\b")
+
+# A PLACE NAME printed as named (Earth & space Book 2 ch. 12.6, internal
+# heat): the geothermal field "The Geysers" in California, whose English
+# article is part of the proper name. Only the two-word name is blanked; "the"
+# stays gated everywhere else. Appended (append-only) by the Indonesian Earth &
+# space Book 2 agent, 2026-10-26.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|\bThe\s+Geysers\b")
+
+# Two PROPER NAMES printed as named (Earth & space Book 2 ch. 12.7, the age
+# of the Earth): the photographic studio "Russell and Sons" credited for the
+# 1906 portrait of Kelvin, and the "Forest City" meteorite of Patterson's lead
+# isochron. Only the names are blanked; "and" and "forest" stay gated
+# everywhere else. Appended (append-only) by the Indonesian Earth & space
+# Book 2 agent, 2026-10-26.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern
+                         + r"|\bRussell\s+and\s+Sons\b|\bForest\s+City\b")
+
+# A PHOTOGRAPHER'S NAME printed as credited (Earth & space Book 2 ch. 12.8,
+# the early Earth): the Wikimedia Commons author "Wendy from Pennsylvania" of
+# the Sedona red-beds photograph. Only the credited name is blanked; "from"
+# stays gated everywhere else. Appended (append-only) by the Indonesian Earth &
+# space Book 2 agent, 2026-10-26.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern
+                         + r"|\bWendy\s+from\s+Pennsylvania\b")
+
+# AN INSTITUTION'S NAME printed as credited (Earth & space Book 2 ch. 12.9,
+# past climates): the "Dartmouth Electron Microscope Facility", author of the
+# public-domain pollen micrograph. Only the credited name is blanked; its words
+# stay gated everywhere else. Appended (append-only) by the Indonesian Earth &
+# space Book 2 agent, 2026-10-26.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern
+                         + r"|\bDartmouth\s+Electron\s+Microscope\s+Facility\b")
+
 if __name__ == "__main__":
     sys.exit(main())

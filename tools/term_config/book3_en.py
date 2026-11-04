@@ -66,6 +66,9 @@ EXTRA_PROTECT = [
     r'\bon\s+stable\s+parts\b',
     # group: a working group of the subcommission, a nannofossil group (b1.24)
     r'\bworking\s+group\b', r'\bthe\s+group\s+proposed\b', r'\bnannofossil\s+group\b',
+    # member: the voting members of a commission (b1.24), not a lithostratigraphic
+    # member (found by the French edition, 2026-10-26; the box and the body linked them)
+    r'\bvoting\s+members\b', r'\bmembers\s+not\s+voting\b',
     # cleavage: the cleavage of a mineral (b1.21), not of a rock
     r'\bgood\s+cleavage\b',
     # contacts: grain contacts (b1.23), not geological contacts on a map

@@ -828,6 +828,17 @@ def visible_text(text: str, findings: list, path: str, depth: int = 0) -> str:
                 # text reports the canon's own `\index{pKa@p$K_a$}` as residual
                 # English. Keep the display half of every `!` level.
                 # 2026-09-06, biology Book 3 `hi`.
+                # makeindex ENCAP: "key|see{target}" prints the language's own
+                # "see" word (babel's \seename) and the target; "key|textbf"
+                # prints nothing extra. The encap name is never visible text, so
+                # an Arabic/Hindi \index{A|see{B}} was rejected for "see" and the
+                # Book 4 ar agent had to drop the see-reference. Keep the key and
+                # the target only. Coordinator, 2026-10-30 (lenient).
+                if "|" in inner:
+                    inner, encap = inner.split("|", 1)
+                    m_enc = re.match(r"(?:see|seealso)\{(.*)\}$", encap, re.S)
+                    if m_enc:
+                        inner = inner + " " + m_enc.group(1)
                 levels = [lvl.split("@", 1)[-1] for lvl in inner.split("!")]
                 out.append(" " + nested_text(" ".join(levels), depth) + " ")
             i = j
@@ -892,11 +903,52 @@ def _locate(body: str, token: str, seen_before: dict) -> int:
     return body.count("\n", 0, max(idx, 0)) + 1 if idx >= 0 else 1
 
 
+# A photograph or data credit is copied as printed: "फ़ोटो: Olga Ernst, Wikimedia
+# Commons, CC BY-SA 4.0." The run after a credit lead-in and its colon, up to
+# the first Devanagari character or closing brace, is skipped. A span holding
+# any Hindi stops there, so "चित्र: हर कटक ..." (a figure description) is still
+# read in full. Earth and space Book 3 hi, 2026-10-27; this replaces about
+# forty credit-only words (global, public, survey, ...) that had been allowed
+# book-wide.
+CREDIT_SPAN = re.compile(
+    r"(?:फ़ोटो|फोटो|छायाचित्र|चित्र|आँकड़े|आंकड़े|डेटा|स्रोत|श्रेय|तटरेखाएँ)\s*:\s*[^\u0900-\u097F}]+")
+# A credit in parentheses that names a licence, "(Broodt, CC BY-SA 4.0)", all Latin.
+CREDIT_PAREN = re.compile(
+    r"\([^()\u0900-\u097F]*(?:CC[ ~]BY|CC0|[Pp]ublic [Dd]omain)[^()\u0900-\u097F]*\)")
+# Names inside credits that a Devanagari sentence surrounds ("... Even Neuhaus
+# द्वारा", "... और Seton और अन्य (2020)"). Matched as whole phrases, so the
+# English words "even" and "natural" are still caught anywhere else.
+CREDIT_PHRASES = ("Even Neuhaus", "Natural Earth", "Seton", "Sandwell",
+                  "Þingvellir", "Smithsonian Global Volcanism Program",
+                  "Bird (2003)", "Wikimedia Commons",
+                  "Radiogenic")  # Book 3 hi, ch25: Wikimedia user name in a photo credit
+# Book 4 hi (Earth and space, 2026-10-30): author and team names inside data and
+# photo credits that a Devanagari sentence surrounds ("Bergin और Tafalla (2007)",
+# "NASA, ESA और Hubble Heritage Team"). Names only, matched as whole phrases.
+CREDIT_PHRASES = CREDIT_PHRASES + (
+    "Tafalla", "Hubble Heritage Team", "Haisch, Lada", "Lada (2001)",
+    "Youdin", "Lodders", "Gail", "Lugaro", "Chiang",  # ch02 data credits
+    "McDonough", "Sun (1995)", "Rudnick", "और Gao", "Gale", "Budahn",  # ch03
+    "Villa और अन्य", "White का पाठ", "Kendall और Caldwell", "Caldwell (1998)", "Edwards", "Mattey",  # ch04
+    "Iacovino और Till", "Giordano, Russell और Dingwell", "Moore और अन्य",  # ch05
+    "Mastin और अन्य (2009)", "Aubry और अन्य (2023)", "Biass, Bonadonna और", "Houghton (2019)", "Newhall और Self",  # ch06
+    "Raymo 2005", "Jouzel और अन्य", "Bereiter और अन्य",  # ch24 data credit (NOAA NCEI Paleoclimatology)
+    "Loutre (1991)",  # ch25 data credit "Berger और Loutre (1991)"
+    "Moring (2008)",  # ch29 data credit "Singer, Berger और Moring (2008), USGS"
+    "Pugmire (2014)", "Advanced Chemistry Basins Project (2004)",  # ch30 data credit
+    "Siems (2002)",  # ch31 data credit "Taggart और Siems (2002), USGS"
+)
+
+
 def check_file(path: pathlib.Path, findings: list) -> None:
     raw = path.read_text(encoding="utf-8")
     rel = str(path)
     body = strip_comments(raw)
     seen = visible_text(body, findings, rel)
+    seen = CREDIT_SPAN.sub(" ", seen)
+    seen = CREDIT_PAREN.sub(" ", seen)
+    for phrase in CREDIT_PHRASES:
+        seen = seen.replace(phrase, " ")
     _occ: dict = {}
 
     # 1. residual English in visible text
@@ -1111,6 +1163,103 @@ ALLOWED_WORDS |= {"nnr-morvel"}
 # a table note and a caption, printed as its address, identical to English
 # (Book 2 hi).
 ALLOWED_WORDS |= {"webmineral"}
+
+# Earth and space Book 3 hi (2026-10-27): the title of William Smith's 1815
+# map, "A Delineation of the Strata of England and Wales, with part of
+# Scotland", stays in English as every edition prints it (a title is never
+# translated; the gloss, if any, is Hindi). Its words are listed here only
+# for that title. Narrow this list if a later edition can carry the title in
+# a form the gate does not read.
+ALLOWED_WORDS |= {"delineation", "strata", "england", "wales", "scotland",
+                  "the", "of", "and", "with", "part",
+                  # Book 3 hi, ch. 5: Hutton's Theory of the Earth (1788/1795)
+                  # and the Transactions in which it was printed, kept English.
+                  "theory", "earth", "transactions",
+                  # Book 3 hi, ch. 5: the trigonometric name in the pgfmath
+                  # coordinates of the dipping-layer figure, e.g. (\X,{-\X*tan(\d)}),
+                  # which the drawing reduction does not blank (canon line, identical).
+                  "tan",
+                  # Book 3 hi, ch. 7: the float placement specifier of the
+                  # table environment, \begin{table}[htbp], is LaTeX syntax
+                  # that the gate reads as visible text (identical in the canon).
+                  "htbp",
+                  # Book 3 hi, ch. 8: the colour space name in the Michel-Levy
+                  # chart's caption and the Les minéraux des roches title (1888,
+                  # kept as printed), and the photographer's user name.
+                  "srgb", "les", "minéraux", "des", "roches", "chmee"}
+# Earth and space Book 3 hi, ch. 9: the photographer of the Lehmann portrait
+# credit (Even Neuhaus), copied as printed.
+# Book 3 hi, ch. 9: the English word in the label head-wave (the label is
+# not prose; the gate reads it here, and the label itself must stay English).
+ALLOWED_WORDS |= {"head"}
+
+# Book 3 hi, ch. 11: the photographer's user name in a credit (Broodt, CC BY-SA
+# 4.0), copied as printed.
+
+# Book 3 hi, ch. 12: the data credit "Natural Earth" (coastlines) and the
+# photographer's user name in a credit (Alpsdake, CC BY-SA 4.0), copied as printed.
+
+# Book 3 hi, ch. 13: the credits of the Thingvellir and Galapagos photographs
+# (Olga Ernst, Wikimedia Commons; NOAA Okeanos Explorer Program), and the name of
+# Thingvellir, copied as printed.
+
+# Book 3 hi, ch. 14: the data and photograph credits of the active-margins figures
+# (Scripps Institution of Oceanography and Sandwell, marine gravity; Smithsonian
+# Global Volcanism Program; Bird; USGS; NASA; Natural Earth; Wikimedia Commons;
+# public domain), copied as printed.
+
+# Book 3 hi, ch. 15: the photograph credits of the Kilauea lava fountain (G. E. Ulrich,
+# U.S. Geological Survey) and of the Deccan Traps (Nicholas, user name Nichalp), copied as printed.
+
+# Book 3 hi, ch. 16: the photograph credit of the triaxial cell (Darryl Peroni, copied as
+# printed); the pgfplots/TikZ keyword "angle" of a \pic (drawing code the reduction
+# does not blank, identical in the canon); and the English words inside cross-reference
+# keys and the method label of the slip test (faults-folds-fabrics, stress-strain,
+# slip-test), which are not prose.
+ALLOWED_WORDS |= {"angle", "fault", "faults", "fabrics", "folds", "slip"}
+
+# Book 3 hi, ch. 17: the title of Anderson's 1905 book, "The Dynamics of Faulting and
+# Dyke Formation", kept in English as the run rule has it (a title is not translated).
+ALLOWED_WORDS |= {"dynamics", "faulting", "dyke", "formation"}
+
+ALLOWED_WORDS |= {"cal", "intcal", "IntCal"}  # Book 3 hi, ch25: the calendar-age unit "cal BP" and the IntCal20 curve name
+
+# Earth Book 4 hi, ch. 11: "P--T--t path" (pressure--temperature--time) is international
+# notation printed in Latin in every script, like "P--T" (which passes the uppercase
+# escape); the lowercase t defeats that escape (hi Book 4 agent, 2026-10-30).
+ALLOWED_WORDS |= {"p--t--t"}
+
+# Earth Book 4 hi, ch. 30: "Easy%Ro" is the name of a published vitrinite-reflectance model,
+# printed in Latin in every edition like an acronym (hi Book 4 agent, 2026-10-30).
+ALLOWED_WORDS |= {"easyro", "EasyRo"}
+
+# Earth Book 4 hi, ch. 31: the roman sub-item label "(iii)" (two-letter "ii"/"iv" already pass
+# the length floor) and the count-rate unit "kcps" (kilo-counts per second), printed in Latin
+# in every edition like a unit symbol (hi Book 4 agent, 2026-10-30).
+ALLOWED_WORDS |= {"iii", "kcps"}
+
+# Earth & space Book 4 hi, coordinator, 2026-10-30: a licence credit in parentheses
+# whose stock words are in Hindi, as Book 3 hi writes them: "(James St.~John,
+# CC~BY~2.0, विकिमीडिया कॉमन्स के माध्यम से।)", "(Lawson Smith, ... (सार्वजनिक डोमेन))".
+# Only these two exact Hindi phrases may sit inside the otherwise all-Latin
+# parenthesis, and it must still name a licence; English words elsewhere still fire.
+_HI_CREDIT_STOCK = r"(?:[^()\u0900-\u097F]|सार्वजनिक\s+डोमेन|विकिमीडिया\s+कॉमन्स\s+के\s+माध्यम\s+से।?)"
+CREDIT_PAREN = re.compile(r"\(" + _HI_CREDIT_STOCK + r"*(?:CC[ ~]BY|CC0|[Pp]ublic [Dd]omain|सार्वजनिक\s+डोमेन)"
+                          + _HI_CREDIT_STOCK + r"*\)")
+
+# Earth & space Book 5 hi, pilot edition coordinator, 2026-11-04. Unit symbols the English canon prints as literal
+# \\qty units and axis units (kyr, Myr, kpc, mag): they stay Latin in every script. "Irr" is the Hubble type symbol of an
+# irregular galaxy, printed in Latin like "Im". Names in credits and source citations stay Latin (series rule); matched as
+# whole phrases or surnames, so the English words themselves still fire anywhere else.
+ALLOWED_UNITS |= {"kyr", "myr", "kpc", "mag"}
+ALLOWED_WORDS |= {"irr"}
+CREDIT_PHRASES = tuple(CREDIT_PHRASES) + (
+    "NCEP--NCAR", "NASA/JPL-Caltech", "Borchert", "Mikenorton", "Ken Lund", "Jim Peaco", "NASA Center for Climate Simulation",
+    "Goddard Space Flight Center", "Journal of Marine Research", "ETOPO1 Ice Surface", "ECOSTRESS Spectral Library",
+    "Jet Propulsion Laboratory", "California Institute of Technology", "Geological Survey", "Wicks", "Roddy", "FU Berlin",
+    "Carter", "Pagan", "Zeng", "Brunier", "Eilers", "Pouliasis", "Hubble, heic0602", "Asplund", "Amarsi", "Grevesse", "Hester",
+    "Loll", "Levan", "Tanvir", "Fruchter", "Fox",
+)
 
 if __name__ == "__main__":
     sys.exit(main())

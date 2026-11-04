@@ -324,7 +324,10 @@
 \ifom@unicodeface
   \AtBeginDocument{%
     \DeclareSIPrefix{\micro}{\ensuremath{\mu}}{-6}%
-    \DeclareSIUnit{\ohm}{\ensuremath{\Omega}}%
+    % Not \Omega: inside siunitx's \mathrm that \mathalpha glyph takes the Devanagari or
+    % Arabic family and prints nothing, so 130 ohm m read "130 m". The only sign is
+    % "Missing character" for U+000A, with exit 0 (Book 5, ch. 31, 2026-11-03).
+    \DeclareSIUnit{\ohm}{\ensuremath{\mathchar\numexpr\symlegacymaths*256+10\relax}}%
   }%
   % The per-mil sign: \textperthousand prints U+2030, which neither face has,
   % so the delta-18-O values of Book 4 (ch. 11) lost their unit in the hi/ar
@@ -854,6 +857,9 @@
 \DeclareSIUnit{\ppm}{ppm}
 \DeclareSIUnit{\ppb}{ppb}
 \DeclareSIUnit{\year}{yr}
+% A language file that defines \omunitYear (French: an) prints its own year
+% symbol; every other edition keeps yr, so the English books are unchanged.
+\ifdefined\omunitYear\DeclareSIUnit{\year}{\omunitYear}\fi
 \DeclareSIUnit{\Ma}{Ma}
 \DeclareSIUnit{\Ga}{Ga}
 \DeclareSIUnit{\ka}{ka}
@@ -1354,6 +1360,13 @@
 \Crefname{exercise}{\omnameExercise}{\omnameExercises}
 \crefname{problem}{\omnameProblem}{\omnameProblems}
 \Crefname{problem}{\omnameProblem}{\omnameProblems}
+% Tables, for \cref{tab:…} (Book 3 is the first to use them: 27 references).
+% Only a language file that defines \omnameTable gets a \crefname; the others
+% keep cleveref's English built-in, so the English books are unchanged.
+\ifdefined\omnameTable
+  \crefname{table}{\omnameTable}{\omnameTables}
+  \Crefname{table}{\omnameTable}{\omnameTables}
+\fi
 
 % Arabic refers to a numbered statement with the definite article: the heading
 % reads "مبرهنة 3.1" but the reference reads "حسب المبرهنة 3.1". The \omname*

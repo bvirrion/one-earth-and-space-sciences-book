@@ -602,6 +602,13 @@ ALLOWED = {
     # range's name. "andes" is not an English word, so listing it costs no
     # coverage. Appended by the Indonesian Chemistry Book 2 agent, 2026-10-04.
     "andes",
+    # A PLACE NAME: Ascension Island, South Atlantic (Earth and Space Book 4,
+    # ch. 4, the St. Helena (HIMU) island group). Indonesian keeps the island's
+    # name in Latin, as every edition does; it ends in -sion, so
+    # ENGLISH_SUFFIX_CAP fires and no rewording can change an island's name.
+    # The English common noun "ascension" occurs nowhere in the series.
+    # Appended by the Indonesian Earth and Space Book 4 agent, 2026-10-30.
+    "ascension",
 }
 
 # A curated list cannot be complete, and the words it misses are exactly the
@@ -1401,6 +1408,22 @@ ATTRIBUTION = re.compile(ATTRIBUTION.pattern
 # space Book 2 agent, 2026-10-25.
 ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Texas\s+A&?M\s+University")
 
+# Earth & space Book 3 id agent, 2026-10-27: the photograph credit of the
+# Europa figure (ch. 3, "NASA/JPL/University of Arizona and NASA/JPL/DLR, public
+# domain"). Institution and mission names, printed as named in the canon credit.
+# Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|University\s+of\s+Arizona\s+(?:and|dan)\s+NASA/JPL/DLR")
+
+# Earth & space Book 3 id agent, 2026-10-27: the title of William Smith's 1815
+# map (ch. 4 history box), printed as named: a published work's title, not prose.
+# Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|A\s+Delineation\s+of\s+the\s+Strata\s+of\s+England\s+and\s+Wales(?:,\s+with\s+part\s+of\s+Scotland)?")
+
+# Earth & space Book 3 id agent, 2026-10-27: Hutton's Theory of the Earth and the
+# learned society that heard it, printed as named (ch. 5 history box): a work's
+# title and an institution's name. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Theory\s+of\s+the\s+Earth|Royal\s+Society\s+of\s+Edinburgh")
+
 # A PLACE NAME and a WORK TITLE printed as named (Earth & space Book 2
 # ch. 11.8, igneous rocks): the "Giant's Causeway" (Northern Ireland), which
 # has no established Indonesian name, and Bowen's book "\emph{The Evolution
@@ -1451,6 +1474,122 @@ ATTRIBUTION = re.compile(ATTRIBUTION.pattern
 # space Book 2 agent, 2026-10-26.
 ATTRIBUTION = re.compile(ATTRIBUTION.pattern
                          + r"|\bDartmouth\s+Electron\s+Microscope\s+Facility\b")
+
+# Earth & space Book 3 id agent, 2026-10-27: a float placement option such as
+# \begin{table}[htbp] is captured by TITLE_RE (table is in TITLE_ENVS) and is
+# identical to the English twin by design, so it is not a title. Appended
+# (append-only): the word test is narrowed for placement strings only.
+_title_has_words_base = _title_has_words
+def _title_has_words(t):
+    return _title_has_words_base(t) and t.strip() not in {
+        "htbp", "htb", "hbp", "tbp", "htp", "ht", "hb", "tb", "h", "t", "b", "p", "!htbp"}
+
+# Earth & space Book 3 id agent, 2026-10-27 (ch. 9-10): the province name "Basin and
+# Range" (western United States), printed as named by the canon and by the
+# French edition; no Indonesian exonym exists. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Basin\s+and\s+Range")
+
+# Earth & space Book 3 id agent, 2026-10-27 (ch. 12): the magnetic chron names of the
+# polarity timescale (C1n, C2An, C5n, C2n ...) are names, not prose: "An" in
+# "C2An" fires as the English article. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|\bC\d+A?[nr]\b")
+
+# Earth & space Book 3 id agent, 2026-10-27 (ch. 13): the photograph credit of the Galapagos
+# Rift lava figure ("NOAA Okeanos Explorer Program, Galapagos Rift Expedition 2011"), printed
+# as named in the canon credit. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Rift\s+Expedition\s+2011")
+
+# Earth & space Book 3 id agent, 2026-10-27 (ch. 14): two credit names printed as named in the
+# canon: the dataset "Scripps Institution of Oceanography marine gravity model" (Kuril gravity
+# figure) and the photograph subject "Sarychev Peak" (volcano, Kuril arc). Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Scripps\s+Institution\s+of\s+Oceanography\s+marine\s+gravity\s+model|Sarychev\s+Peak")
+
+# Earth & space Book 3 id agent, 2026-10-27 (ch. 15): the photograph and table name "Columbia River"
+# (Columbia River basalts, province name in the hotspot table), printed as named by the canon.
+# Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Columbia\s+River")
+
+# Earth & space Book 3 id agent, 2026-10-27 (ch. 15): the acronym LIP (large igneous province), defined
+# in the text by its Indonesian term and used as the standard acronym in every figure key. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|\bLIP\b")
+
+# Earth & space Book 3 id agent, 2026-10-27 (ch. 17): proper names of the photographs and of a
+# book title, printed as named in the canon: Corona Heights, Red Rock Canyon, Keystone Thrust, and
+# "The Dynamics of Faulting and Dyke Formation" (Anderson 1905). Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Corona\s+Heights|Red\s+Rock\s+Canyon|Keystone\s+Thrust|Dynamics\s+of\s+Faulting\s+and\s+Dyke\s+Formation")
+
+# Earth & space Book 3 id agent, 2026-10-27 (ch. 17): the district name "North Cornwall" in a photograph
+# credit caption (Millook), printed as named in the canon. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|North\s+Cornwall")
+
+# Earth & space Book 3 id agent, 2026-10-27 (ch. 28): the photograph credit "NASA, MODIS/LANCE"
+# (Gulf of Alaska cyclone, MODIS instrument, LANCE near-real-time data service), printed as named in
+# the canon credit and kept byte-identical in the credits list. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|\bMODIS\s*/\s*LANCE\b")
+
+# Earth & space Book 3 id agent, 2026-10-27 (ch. 28): the title of Ferrel's 1856 essay, printed as the
+# English title (a title is never translated; the Indonesian gloss follows in parentheses). Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|An\s+essay\s+on\s+the\s+winds\s+and\s+currents\s+of\s+the\s+ocean")
+
+# Earth & space Book 4 id agent, 2026-10-30 (ch. 8, magmatic differentiation): the PLAGIOCLASE
+# END-MEMBER NOTATION "An$_{70}$", "An$_{83.3}$" (mol per cent anorthite, as "Fo$_{80}$" for olivine),
+# printed byte-identically to the English canon; the symbol lower-cases to the gated article "an".
+# Only "An" written directly against a math marker (its subscript) is blanked; the word "an" in
+# prose stays gated. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|\bAn(?=\x00)")
+
+# Earth & space Book 4 id agent, 2026-10-30 (ch. 10, metamorphic facies, proof of the
+# aluminosilicate triple point): the standard MINERAL ABBREVIATIONS ky/and/sil as \text{}
+# subscripts inside mathematics, $\Delta G_{\text{ky}\to\text{and}}$, $G_{\text{and}}$. The
+# reduction keeps \text{} contents, so the display reads "\x00 ky sil ky and and sil \x00",
+# byte-identical to the English canon and frozen by id_apply's math census; "and" fires as English.
+# As for the Ox/Red rule above, only a run made solely of ky/and/sil tokens between two math
+# markers is blanked; "and" in prose stays gated. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|(?<=\x00)(?:\s*(?:ky|and|sil)\b)+(?=\s*\x00)")
+
+# Earth & space Book 4 id agent, 2026-10-30 (ch. 11, thermobarometry): MINERAL
+# AND SITE SUBSCRIPTS as \text{} inside math -- $X_{\text{an}}$ (anorthite
+# fraction), $X_{\text{Mg,grt}}$, $a_{\text{pirop}}$ ... The reduction keeps
+# \text{} contents, so a display reads "\x00 pirop anit ... Mg grt Fe bt \x00"
+# ("an" is gated English; the run has no function word). Only a run made
+# wholly of these tokens between two math markers is blanked, as for ky/and/sil
+# (or ended by a translated "\text{ dalam ...}" gloss in the same display).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|(?<=\x00)(?:[\s,]*(?:an|pirop|anit|almandin|flogopit|grosular|anortit|garnet|biotit|Mg|Fe|Ca|grt|bt)\b)+(?=\s*\x00|\s+dalam\b)")
+
+# Earth & space Book 4 id agent, 2026-10-30 (bachelor-2 ch. 12, migmatite
+# photograph credit "Foto: Kevin M. Gill, CC BY 4.0"): the photographer's
+# surname lower-cases to the gated "gill" and follows an initial, so the eponym
+# rule cannot see it. The whole name is blanked, as for Natural Earth.
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Kevin\s+M\.\s+Gill\b")
+
+# Earth & space Book 4 id agent, 2026-10-30 (bachelor-2 ch. 20, Lyell's book
+# cited by its published title, \emph{Principles of Geology}, in the canon's
+# own \emph{}; fr/es/pt/nl keep it verbatim). "of" fires as English; only the
+# title phrase is blanked. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Principles\s+of\s+Geology")
+
+# Earth & space Book 4 id agent, 2026-10-30 (bachelor-2 solutions/29, problem
+# answer 12): the canon's math "Tonnage $\times\, 370.7/799.6$" puts a thin
+# space after the CONTROL WORD \times, frozen byte-identical by id_apply's math
+# census; split-number read "times\, 370" as a word split from a thousands
+# group. Only a letter run preceded by a backslash (a TeX control word) is
+# exempted; "ribu\, 370" in prose still fires. Appended (append-only).
+SPLIT_NUMBER = re.compile(r"(?<![\\A-Za-z])[A-Za-z]{2,}\s*\\,\s*\d{3}\b")
+
+# Earth & space Book 4 id agent, 2026-10-30 (bachelor-2 ch. 30, energy
+# geology): the Green River oil shale / kerogen of Utah, a formation's proper
+# name kept in Latin by every edition (fr/es/pt/nl print "Green River"). "River"
+# follows the capitalised "Green", so the eponym rule cannot see it, and it is
+# gated English. Only the two-word name is blanked. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Green\s+River\b")
+
+# Earth & space Book 5 id coordinator, 2026-11-03 (bachelor-3 ch. 3, 4, 15, 20, 22, 24, 25, 28, 31): names printed in English in the canon
+# and kept by every edition: reference systems, institutions, a journal, a dataset, a mission, a telescope and two named
+# springs. Only the whole phrases are blanked; the bare words still fire. Appended (append-only).
+ATTRIBUTION = re.compile(ATTRIBUTION.pattern + r"|Geodetic\s+Reference\s+System|International\s+Association\s+of\s+Geomagnetism\s+and\s+Aeronomy"
+                         r"|Palette\s+Spring|Mammoth\s+Hot\s+Springs|NASA\s+Center\s+for\s+Climate\s+Simulation|ETOPO1\s+Ice\s+Surface"
+                         r"|Operation\s+IceBridge|James\s+Webb\s+Space\s+Telescope|Journal\s+of\s+Marine\s+Research"
+                         r"|California\s+Institute\s+of\s+Technology|National\s+Aeronautics\s+and\s+Space\s+Administration|Exoplanet\s+Exploration\s+Program|Li,\s+Be,\s+B\b")
 
 if __name__ == "__main__":
     sys.exit(main())

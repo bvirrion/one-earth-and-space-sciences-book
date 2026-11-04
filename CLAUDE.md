@@ -31,9 +31,12 @@ binding run file `sources/BATCH_BOOKS_1-5.md`. **All five English books are
 written, verified and closed (2026-10-23): 151 chapters, 2,054 pp — 32 ch. /
 324 pp, 28 / 362, 29 / 452, 31 / 461, 31 / 455; every book 0/0/0, 15 years
 of gates green, 1,046 tests, 1,454 figdata tables byte-stable.** **Book 1 ships in
-eight languages since 2026-10-25 and Book 2 since 2026-10-26** (see "Language
-editions" below); Books 3–5 are English only. Not started: translations of
-Books 3–5, the HTML reader, the site.
+eight languages since 2026-10-25, Book 2 since 2026-10-26 and Book 3 since
+2026-10-28** (French 2026-10-26, the other six 2026-10-27/28; see "Language editions"
+below). **Book 4 ships in eight languages since 2026-10-30** (French 2026-10-28 as a
+per-chapter pilot, the other six 2026-10-30). **Book 5 ships in eight languages since
+2026-11-04, at the lower pilot tier** (see its section below). Not started: the HTML
+reader, the site.
 
 - **Books 1–2 never repeat themselves**: every notion has exactly one owner
   chapter across grades 1–12 (`OUTLINE.md` maps); a later chapter recalls it.
@@ -370,5 +373,304 @@ edition.
   formulas. The other editions keep English's split. A `\qty` inside math is
   frozen by the math census, so a language that switches units must also
   switch the formulas (`--force-classes math`), or its pages mix the two.
+
+## Language editions (Book 3, French, 2026-10-26)
+
+**Book 3 (University Year 1, `bachelor-1`) ships in English and French.** One agent
+wrote the French edition (about 3 h 10 min), and the coordinator verified and closed
+it. The run file is `sources/TRANSLATION_BOOK_3_FR.md`; **`sources/WAVE1_FINDINGS_B3.md`
+is what `nl`, `es`, `pt`, `hi`, `ar` and `id` must read first.**
+
+| | pages | links / targets | score |
+|---|---:|---:|---:|
+| `en` | 475 | 4,650 / 184 | |
+| `fr` | 496 | 4,468 / 185 | 96 |
+
+Final builds (TeX Live 2026, forced `-g`, scratchpad): `en` 475 pp and `fr` 496 pp, both 0 errors / 0 undefined / 0 overfull, nullfont 0, no missing characters, invalid-in-math 0, zero-height 0, `.fls` 58 = the files on disk (the French build was repeated after the last edit). `check_translation.sh
+bachelor-1 fr` and `gates.sh bachelor-1` pass, the linker dry run is 0, and every
+English target is reached (the extra French one is *parcel*).
+
+**Infrastructure.** The French entry `one_earth_and_space_sciences_book_3_university_year_1_fr.tex`
+(from the French Book 2 entry), `frontmatter/image-credits-book3.fr.tex`, the
+directories, a `book3_fr.py`, `LANGS[3] = ("en", "fr")`, `latexmkrc` and `release.yml`.
+Two shared changes, both conditional on a language file defining a string, so every
+other edition is unchanged: `\crefname{table}` (+ `\tablename` = *Tableau* in `fr.tex`,
+because babel-french's own caption word is *Table*), and `\year` printing *an*
+(`\omunitYear`). The agent also made two lenient edits to `check_latin_prose.py` (siunitx
+option brackets are not prose; an `ALLOWED_BY_LANG["fr"]` entry for symbolic
+coordinate keys).
+
+**Canon fixes (English, mirrored into French, line counts unchanged):** 14 accent
+escapes and 8 credit names to UTF-8; 9 unit words moved out of `\qty`; three
+double roundings (`0.712`, `9.2°`, exercise 7.11's 1.544); the wrong-sense link of
+*voting members*. Full list in `WAVE1_FINDINGS_B3.md` §1.
+
+**Traps:**
+- **Time units in math.** The run file froze `Myr`/`yr`/`Gyr` in math spans, which
+  left *Ma* in prose and *Myr* in 166 formulas. The coordinator converted every unit
+  argument in the written tree (a direct edit; the `math` census only runs in
+  `id_apply`). Decide the convention before the run.
+- **Tables.** Book 3 is the first volume with `table` and `\cref{tab:…}`: caption
+  label and reference name need a string per language.
+- **A rewrite regex with the lookbehind before an optional backslash** matched
+  `\Myr` at the `M` and printed `\per\\Ma`. Grep after any bulk unit edit.
+- **A build started before an edit is worthless** if the edit touches files it reads
+  later; a half-converted chapter died with an error at page 180.
+- **Probe-build one page of every new environment** before the run: the table
+  caption read *Table 7.1* in a French book and no gate could see it.
+- **Nullfont is 0** in Book 3 (no blank-line map tables): any nullfont line is a
+  real defect.
+
+## Language editions (Book 3, the other six languages, 2026-10-27/28)
+
+**Book 3 ships in all eight languages.** One agent at a time made each edition, with at
+most four running at once, in two waves: nl/es/pt/id, then hi/ar.
+- **Models** (user rule): the edition agents ran `claude-haiku-5-5` at effort high; the
+  coordinator ran `claude-opus-5-5`.
+- **Stints** (user ruling): when an agent stopped, a fresh agent continued from the
+  edition's PROGRESS file. Each edition took 5–9 stints.
+- **Run file and findings:** the run file is `sources/TRANSLATION_BOOK_3.md`. The
+  findings for wave 2, and the canon edits made in both waves, are in
+  `sources/WAVE1_FINDINGS_B3_W2.md`.
+- **Scratch logs:** each edition's per-chapter log is in the run scratchpad (`<lang>3/`),
+  not in the repo.
+
+| | pages | links / targets | score |
+|---|---:|---:|---:|
+| `en` | 475 | 4,650 / 184 | |
+| `fr` | 496 | 4,468 / 185 | 96 |
+| `nl` | 500 | 3,868 / 187 | 96 |
+| `es` | 495 | 4,539 / 187 | 95 |
+| `pt` | 492 | 4,629 / 185 | 95 |
+| `hi` | 454 | 4,029 / 179 | 95 |
+| `ar` | 426 | 3,360 / 185 | 95 |
+| `id` | 495 | 4,599 / 186 | 95 |
+
+**Builds and gates.** Final builds: TeX Live 2026, forced, in the scratchpad. All are
+0 errors / 0 undefined / 0 overfull, nullfont 0, missing-char 0, invalid-in-math 0,
+zero-height 0, `.fls` 58. `check_translation.sh bachelor-1 <lang>` passes and the linker
+dry run is 0 everywhere.
+
+**Links.** Under-linking is accepted where a homograph cannot be linked safely:
+- Dutch welds compounds (83 %).
+- Hindi leaves seven targets unlinked, each documented in `book3_hi.py`.
+- Arabic STOPs ارتفاع (altitude/height), اتجاه (trend/direction) and ميل
+  (declination/slope).
+
+**Canon edits** (English, mirrored into every edition; the full list is
+`WAVE1_FINDINGS_B3_W2.md` §1):
+- `\textmu` → `\unit{\micro m}` (the hi/ar faces lack µ);
+- a sol13 sentence that contradicted the chapter's fitted constant;
+- a comma;
+- 60 → 70 mW/m² after 2.7 × 25 K/km;
+- "acids of the beryllium" → "acids to remove the beryllium";
+- 20–30 fathoms printed as "40 to 55 m" (it is 37 to 55);
+- "30 % more" than 125 Sv → 39 % (the source's 30 % was against its own canonical
+  value);
+- "the sand of the opening" → "the beach sand of the opening paragraph" (three
+  editions had read *opening* as an aperture);
+- "every borehole crosses the limestone over 180 m" and "each log gives the same
+  thicknesses" → said of B1 and B3 only (B2 starts in the limestone on the crest).
+
+**Traps:**
+- **The gates do not see what a reader sees.** Three coordinator sweeps found defects
+  in editions that had passed every gate:
+  - English function words in the visible source text. Example: a doubled English
+    half-sentence in es; the twin gate compares whole lines.
+  - Number tokens per file against English. Examples: nl converted the canon's miles
+    to km, so exercise 21.4(c) asked the reader to convert numbers the text no longer
+    printed; hi had Devanagari digits in captions where `\qty` belonged; ar dropped
+    the leading zero of an azimuth (`\ang{074.8}`).
+  - The PDF text. Example: English from figdata label columns.
+
+  The scripts live in the run scratchpad (`coord/engsweep.py`, `numdiff.py`,
+  `pdfsweep.py`). The method is in `translation_instruction.md`.
+- **Prose-gate allow-lists.** To pass credits and titles, agents had added *the, of,
+  and, with, earth, model, global, public, survey, even* to the hi/ar gates' book-wide
+  `ALLOWED_WORDS`. They are now credit-span and exact-phrase matching instead:
+  `CREDIT_SPAN`, `CREDIT_PAREN` and `CREDIT_PHRASES` in `check_hindi_prose.py`, and
+  `CREDIT_TITLE_PHRASES` in `check_arabic_prose.py`. A control file shows both gates
+  still catch the bare words. `check_orphan_lines.py` allows the Smith map title in
+  every language.
+- **The hi and ar patches are stale.** Their finishing and reading stints edited the
+  `.tex` files directly. Never re-apply `id_apply` there; unwrap, edit, relink.
+- **The ICS chart's names come from figdata** and print English. Every edition draws
+  explicit nodes instead, as `fr/24` does.
+- **Arabic heads print ")⋆(" when read as a left-to-right string.** That is correct
+  right-to-left (the same shapes as the body's "(أ)"); do not "fix" it.
+- **Units:** id writes Ma/Ga everywhere. The other editions keep English's
+  Ma/Myr/Gyr/yr.
+- **Credit pages:** a translated title stays in Latin, and place names in hi credits
+  stay Latin, as in Book 2. The colophon is shared English in every edition.
+
+## Language editions (Book 4, French, 2026-10-28: the per-chapter pilot)
+
+**Book 4 (University Year 2, `bachelor-2`) ships in English and French.** The edition
+was made by **one agent per chapter** (course file plus solution file), at most eight
+at once (user rule): 31 `claude-haiku-5-5` agents at effort high, 69 minutes of wall
+clock, and the coordinator `claude-opus-5-5` for every book-wide step. The brief, the
+only document an agent read, is `sources/TRANSLATION_BOOK_4_FR.md`. The scratch tools
+(`prep.py` for the numbered inputs and glossaries, `check.sh`/`probe.sh` for the
+per-chapter check, `units.py`, `census.py`, `pilotcost.py`) and the canon log live in the
+run scratchpad (`b4fr/`), not in the repo.
+
+| | pages | links / targets | score |
+|---|---:|---:|---:|
+| `en` | 484 | 2,019 / 191 | |
+| `fr` | 509 | 2,262 / 199 | 95 |
+
+Final builds (TeX Live 2026, forced, into `build/`): both 0 errors / 0 undefined /
+0 overfull, nullfont 0, missing-char 0, `.fls` 62. `check_translation.sh bachelor-2 fr`
+and `gates.sh bachelor-2` pass, and the linker dry run is 0. Score file:
+`translation_scores/book_4/fr/translation_score.md`.
+
+**Cost.** The per-chapter agents still ran mostly on Haiku's long-prompt card: 787 of
+1,002 requests were over 100K tokens, with peaks of 242–353K. The agents cost $28
+(it would have been $6.55 all on the short card), and the coordinator about $28.
+
+**Canon edits.** 53 were made, in English and French together, each verified three ways
+(about half the agents' reports were their own errors). The list and the old/new text
+are in the score file and the run's `canon_edits.md`. Among them:
+- *less dense* → *denser* (ch. 10);
+- pyroclastic flows "hotter than 800 °C" → 200–700 °C (ch. 6);
+- the Hawaiian–Emperor volume reworded to its source (ch. 17, ledger `cs14:volumes`);
+- a chapter macro `\up` that clashed with babel-french, renamed `\qapfup` (ch. 9);
+- `\qty{0.311}{}` → `\num{0.311}`;
+- 13 line-broken `\index` keys joined;
+- about 35 values recomputed along the printed path.
+
+**Traps:**
+- **Units.** French converts every time unit to *Ma*/*Ga*/*ka*/*an* and
+  `}{days}`/`}{hours}` to *jours*/*heures*, in prose and in math. The coordinator did
+  it by script after the agents finished, skipping comments and table keys (`t_Myr`).
+- **Data-file labels.** The extinction (ch. 19) and supercontinent (ch. 15) charts print
+  their names from figdata, so French draws explicit nodes, as the ICS chart already does.
+- **The term layer.** In `book4_fr.py`, a STOP does not hold back an EXTRA entry. The
+  short form *nappe* (thrust sheet) is an EXTRA, so its groundwater, pumice and debris
+  senses are masked by `EXTRA_PROTECT` patterns.
+- **Cross-references need their article.** Agents wrote *de \cref{prop}*, *chapitre
+  \cref{ch}* (which prints "chapitre Chapitre 26"); a sweep fixed 55. Grep the word before
+  every `\cref` in a new French edition.
+- **A stale `.aux` in `build/`.** An `.aux` left in `build/` from an older TeX Live killed
+  the English rebuild with "Argument of \@firstoffive has an extra }". Delete a book's
+  `.aux`/`.out`/`.toc`/`.fdb_latexmk` by name before its first TeX Live 2026 build there.
+- **Open.** The shared solution head prints *Solution de Exercice N* (`\omsolutionof`, the
+  same in every series and in es/pt). The figures were sampled, not checked one per page.
+
+## Language editions (Book 4, the other six languages, 2026-10-30)
+
+**Book 4 ships in all eight languages.** Six `claude-opus-5-5` agents at effort high, one
+per edition (nl, es, pt, hi, ar, id), **all six at once** (user rule for this run), each in
+a single stint with its context compacted automatically (id 4.6 h, hi 6.6 h, ar 6.9 h). The coordinator
+(`claude-opus-5-5`) did every shared-file edit and verified each hand-back.
+- **Run file and findings:** `sources/TRANSLATION_BOOK_4.md`; findings, canon edits and
+  the new Arabic traps in `sources/WAVE1_FINDINGS_B4.md`.
+- **Run directory:** `draft/b4-run/` (gitignored; it survives a `/tmp` wipe): the
+  coordinator's tools (`build.sh` with two machine-wide `flock` slots, `probe.sh`,
+  `engsweep.py`, `numdiff.py`, `crefart.py`, `census.py`, `pdfsweep.py`), the canon log
+  `coord/canon_edits.md`, and each agent's `<lang>4/PROGRESS.md`.
+
+| | pages | links / targets | score |
+|---|---:|---:|---:|
+| `en` | 484 | 2,019 / 191 | |
+| `fr` | 509 | 2,262 / 199 | 95 |
+| `nl` | 504 | 1,965 / 193 | 96 |
+| `es` | 511 | 2,087 / 195 | 96 |
+| `pt` | 504 | 2,224 / 194 | 96 |
+| `hi` | 457 | 1,995 / 191 | 95 |
+| `ar` | 438 | 1,318 / 198 | 95 |
+| `id` | 518 | 2,246 / 197 | 95 |
+
+**Builds and gates.** Final builds of all eight: TeX Live 2026, forced, into `build/`, after
+the stale `.aux`/`.out`/`.toc`/`.fdb_latexmk` of `en`/`fr` were deleted by name. All are
+0 errors / 0 undefined / 0 overfull, nullfont 0, missing-char 0, invalid-in-math 0,
+zero-height 0, `.fls` 62 = the files on disk. The only near-empty pages are the two part
+titles. `check_translation.sh bachelor-2 <lang>` passes for all seven, `gates.sh bachelor-2`
+is green, the linker dry run is 0 everywhere, and `check_orphan_lines.py` finds 0.
+
+**Links.** Every edition reaches every English target. Arabic is at 65 %: two STOPs
+(التحوّل, الكشف) and its split between definite and indefinite forms.
+
+**Canon edits.** Twelve, each mirrored into every edition with line counts unchanged
+(`WAVE1_FINDINGS_B4.md` §1). Among them:
+- unit words in `\qty` → `\hour`/`\day`;
+- *$1 - G$ is increasing* → *$G$ is decreasing* (ch. 28 proof);
+- a PETM label clipped below its axis, invisible in English (ch. 26);
+- the Marinoan "at least 5 Myr" → 3, which the paragraph's own dated brackets give;
+- an unreferenced `\label` between `\section*{Weekend problem}` and its `\begin{problem}`,
+  which stranded the heading at a page foot in every edition (ch. 31).
+
+One edit was a coordinator slip: correcting 0.0673 to 0.0672 left the sum two lines below
+stale (9.24e-3 → 9.23e-3, found by hi). Recompute downstream after any arithmetic fix.
+
+**Traps:**
+- **Arabic right-to-left**, all invisible to the log (`WAVE1_FINDINGS_B4.md` §3):
+  - Latin-only parentheses mirror;
+  - a Latin word next to math prints on the wrong side;
+  - `\foreignlanguage` in a two-axis label mirrors the panel order;
+  - "SiO$_2$" in a table cell prints "₂SiO";
+  - "Latin: digits" lists reverse;
+  - a credit in `\babelsublr` breaks across lines in a narrow caption.
+- **Prose-gate `\index` reducer.** It read `|see{…}` as visible English; it now keeps key
+  and target and drops *see*.
+- **Hindi credits.** "public domain, via Wikimedia Commons" is written in Hindi, as in
+  Book 3. The gate's `CREDIT_PAREN` now accepts those two stock phrases inside a licence
+  parenthesis.
+- **Shared scratchpad.** Six agents rendering pages under the same file names overwrote
+  each other's: prefix render files with the edition.
+- **Late edits look like stray edits.** To tell an agent's last edit from a stray one,
+  compare each file's mtime with that edition's final build log, not with the run start.
+
+## Language editions (Book 5, by the pilot method, 2026-11-03/04)
+
+**Book 5 ships in all eight languages, at the pilot tier: gates green, not read sentence by sentence, figures sampled,
+solutions not recomputed** (user ruling). The method is `../pilot_translation_instruction.md`: one fresh tool-less
+`claude-haiku-5-5` call per section (effort medium), scripts checking every reply, and one `claude-opus-5-5`
+coordinator agent per edition, at most three at once (user rule), `--workers 3`, in the order fr, es, pt, nl, id, hi, ar.
+- **Run file:** `sources/TRANSLATION_BOOK_5.md`, with one `sources/TRANSLATION_BOOK_5_<LANG>.md` per edition.
+- **English edits before and during the run:** `draft/pilot-bachelor-3-canon/canon_edits.md`.
+
+| | pages | links / targets | score | Haiku calls | list price |
+|---|---:|---:|---:|---:|---:|
+| `en` | 477 | 1,191 / 216 | | | |
+| `fr` | 509 | 1,535 / 240 | 88 | 630 | $20.8 |
+| `es` | 507 | 1,359 / 234 | 91 | 585 | $19.4 |
+| `pt` | 504 | 1,348 / 233 | 90 | 626 | $18.9 |
+| `nl` | 504 | 1,295 / 231 | 90 | 711 | $15.6 |
+| `hi` | 462 | 1,346 / 232 | 89 | 653 | $24.7 |
+| `ar` | 443 | 1,130 / 250 | 89 | 494 | $25.8 |
+| `id` | 505 | 1,507 / 241 | 89 | 510 | $17.6 |
+
+Scores come from a sample of 20 passages (seed 1) plus chapter openings, and aren't comparable with the 95–96 of Books 1–4,
+which were read in full. Only about 10 % of pages were read for figures, and many of those hold no figure. List prices are
+API equivalents: the cost table, with Book 4's Opus figures and plan usage, is in the pilot instruction.
+
+**Builds and gates.** Final builds: TeX Live 2026, into `build/`. All eight are 0 errors / 0 undefined / 0 overfull, nullfont 0,
+missing characters 0, zero-height 0, `.fls` 62 for each edition. `check_translation.sh bachelor-3 <lang>` passes for all seven,
+`gates.sh bachelor-3` is green, and the linker check is clean everywhere. `nl` misses one English target
+(`def:b3:palaeomagnetism:apw`, 1 link in English).
+
+**English edits:** 122 in three rounds, all meant to leave the print unchanged: unit-less `\qty` to `\num`, unit words out
+of `\qty`, 33 `\index` joins. `fr`, `es` and `pt` were translated before rounds 2 and 3 and keep their own forms. No error in the
+English science was found or fixed, because nobody recomputed it: **Book 5's English errors, if any, are in all seven.**
+
+**Style fixes during the run, in `styles/`:**
+- **`\ohm` printed nothing in Hindi and Arabic:** 11 sites in ch. 31 ("130 m" for 130 Ω m). Fixed in the Unicode-face branch of
+  `styles/oneearth.sty`; see "A lost `\Omega`" in `translation_instruction.md`. **The same line is in physics, biology and
+  chemistry, whose shipped Hindi and Arabic PDFs have the defect.**
+- **Colophon in Arabic:** `(one-course.com)` scattered its brackets; `styles/lang/ar.tex` now boxes it. Books 1–4's Arabic PDFs
+  print the old form until they're rebuilt.
+
+**Traps:**
+- **Reversed wind.** `fr`, `es`, `pt`, `nl` and `id` all wrote ch. 20:414's *eastward* wind as *easterly*. Only a sweep caught it.
+  `hi`, told in advance, read its 74 wind lines and found none reversed.
+- **Homonyms from the glossary.** Hindi's weather *front* on a wedge (17 lines), Arabic's *inversion* as "reflection" (11).
+- **Arabic labels.** 51 plain-Arabic node labels had brackets or `:` on the wrong side, and no log shows it.
+  `draft/pilot-bachelor-3-ar/nodelint.py` finds them. Only pp. 90 and 303 were re-read after the wrap.
+- **A clean trial proves little.** Arabic's chapter 15 passed, but it is figure-light.
+
+**Open, for the user:** French part titles print *Licence N année* (`styles/lang/fr.tex`, as in Books 3–4); `\omsolutionof` prints
+*Solução de Exercício N* and *Solution de Exercice N*; Spanish *linación* (59 uses, Books 3–4) for *lineación*; Arabic chapter
+openings print باب while the prose says الفصل, as in Book 4.
 
 **Never commit.** Leave the working tree for the user.

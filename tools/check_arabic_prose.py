@@ -608,6 +608,17 @@ def visible_text(text: str, findings: list, path: str, depth: int = 0) -> str:
                 # after Z, and an Arabic edition needing the same would have
                 # been flagged 164 times. Keep only what is printed, per
                 # level. Fixed by the Arabic Biology Book 3 agent, 2026-09-06.
+                # makeindex ENCAP: "key|see{target}" prints the language's own
+                # "see" word (babel's \seename) and the target; "key|textbf"
+                # prints nothing extra. The encap name is never visible text, so
+                # an Arabic/Hindi \index{A|see{B}} was rejected for "see" and the
+                # Book 4 ar agent had to drop the see-reference. Keep the key and
+                # the target only. Coordinator, 2026-10-30 (lenient).
+                if "|" in inner:
+                    inner, encap = inner.split("|", 1)
+                    m_enc = re.match(r"(?:see|seealso)\{(.*)\}$", encap, re.S)
+                    if m_enc:
+                        inner = inner + " " + m_enc.group(1)
                 visible = " ".join(
                     lvl.split("@", 1)[1] if "@" in lvl else lvl
                     for lvl in inner.split("!"))
@@ -850,11 +861,225 @@ ALLOWED_WORDS |= {
 }
 
 
+# Titles and credit names printed in Latin, as published (Earth and space Book 3
+# ar, 2026-10-27). Matched as whole phrases, whitespace or ~ between words, so
+# that their ordinary English words (the, of, and, with, earth, world, model,
+# even ...) are still caught anywhere else. This replaces a word list that had
+# allowed "the", "of", "and" and "with" in every Arabic edition. A later edition
+# adds the exact phrase here, never its words to ALLOWED_WORDS.
+def _phrase(text: str):
+    words = [re.escape(w) for w in text.split()]
+    return re.compile(r"[\s~]+".join(words))
+CREDIT_TITLE_PHRASES = [_phrase(t) for t in (
+    "A Delineation of the Strata of England and Wales, with part of Scotland",
+    "Theory of the Earth", "Transactions", "PawełS", "World Magnetic Model",
+    "Les minéraux des roches", "R. Wesson", "David Higginbotham",
+    "Darla Sondrol", "Giovanna Canu", "Eva Santini", "Robert M. Lavinsky",
+    "Twyla Baker", "Even Neuhaus",
+    # Book 3 ar, ch11: the photographer credit of the Vening Meinesz pendulum, copied exactly.
+    "Broodt, CC BY-SA 4.0",
+    # Book 3 ar, ch12: the photographer credit of the Japanese station photograph, copied exactly.
+    "Alpsdake, CC BY-SA 4.0",
+    # Book 3 ar, ch13: the photographer and the NOAA programme named in the credits, copied exactly.
+    "Olga Ernst", "NOAA Okeanos Explorer Program",
+    # Book 3 ar, ch14: the data-source credits of the Kuril figures, copied exactly.
+    "Scripps Institution of Oceanography", "Sandwell and others", "USGS earthquake catalogue",
+    "Smithsonian Global Volcanism Program", "Natural Earth", "Bird (2003)",
+    # Book 3 ar, ch15: the data credits of the hotspot and caldera figures, copied exactly.
+    "W.~J. and J.~P. Morgan (2007)", "V.~Courtillot and P.~Renne (2003)",
+    "G.~E.~Ulrich, U.S. Geological Survey", "Nicholas (Nichalp), CC BY-SA 2.5",
+    # Book 3 ar, ch16: the photographer credit of the triaxial-cell photograph, copied exactly.
+    "Darryl Peroni, CSIRO, CC BY 3.0",
+    # Book 3 ar, ch17: the photograph credits of the slickenside, breccia, cleavage and chevron figures, copied exactly.
+    "Dextersinister, CC~BY-SA~4.0", "Jstuby, ملك عام", "Mikenorton, CC~BY-SA~3.0", "Smalljim, CC~BY~3.0",
+    # Book 3 ar, ch17: the title of Anderson's book, copied exactly (a title is not translated).
+    "The Dynamics of Faulting and Dyke Formation",
+    # Book 3 ar, ch18: the 1906 newspaper-style caption title, the magazine and the photograph credits, copied exactly.
+    "land separated by the earthquake fault", "Popular Science Monthly", "vol.~69 (1906), ملك عام",
+    "R.~E.~Wallace, U.S. Geological Survey, ملك عام",
+    # Book 3 ar, ch19: the photograph and micrograph credits of the weathering figures, copied exactly.
+    "Pinpin, CC~BY~2.5", "Werner Schellmann, 1969, CC~BY-SA~2.5", "U.S. Geological Survey, ملك عام",
+    # Book 3 ar, ch20: the satellite-image credit of the Mississippi plume figure, copied exactly.
+    "NASA Earth Observatory image by Joshua Stevens, ملك عام",
+    # Book 3 ar, ch21: the photograph, satellite-image and aerial credits of the cross-bedding,
+    # bed-phase and delta figures, copied exactly.
+    "Chip Carroon, Bureau of Land Management, CC BY-SA 2.0,",
+    "Jo Weber, CC BY-SA 3.0,",
+    "U.S. Geological Survey, ملك عام",
+    "Landsat 7",
+    # Book 3 ar, ch22: the photograph and micrograph credits of the reef, coccolith and
+    # bed-phase figures, the book title of the Darwin history box, the species of the
+    # plankton caption, and the citation of the evaporation figure, copied exactly.
+    "NASA, ملك عام،",
+    "Alison R.~Taylor, University of North Carolina Wilmington, CC BY 2.5,",
+    "H.~Takagi and co-authors, 2019, CC BY 4.0,",
+    "Gordon T.~Taylor, Stony Brook University, NOAA, ملك عام،",
+    "Emiliania huxleyi",
+    "Orbulina universa",
+    "Acropora",
+    "McCaffrey, Lazar and Holland, 1987",
+    "The Structure and Distribution of Coral Reefs",
+    # Book 3 ar, ch23: the credits, citations and data source of the compaction, decompaction and
+    # sea-level figures, copied exactly.
+    "Sclater and Christie (1980),",
+    "pyBacktrack",
+    "M.~C.~Rygel, CC BY-SA 4.0,",
+    "Lambeck et al. 2014)",
+    "Spratt and Lisiecki (2016)",
+    "NOAA NCEI World Data Service for Paleoclimatology",
+    # Book 3 ar, ch24: the GSSP names and the fossil species of the stratigraphic tables and
+    # the Vardenoceras and Ostreola correlation problem, copied exactly.
+    "GSSP",
+    "FAD",
+    "Josugoni, CC BY-SA 4.0,",
+    "Nationalparks, CC BY-SA 2.5,",
+    "Trichophycus pedum",
+    "Monograptus uniformis",
+    "Hindeodus parvus",
+    "Vardenoceras medium",
+    "Vardenoceras ultimum",
+    "Vardenoceras primum",
+    "V.~primum",
+    "V.~medium",
+    "V.~ultimum",
+    "Ostreola",
+    # Book 3 ar, ch25: the photograph credits and the calibration-curve names of the radiometric figures, copied exactly.
+    "Emmanuel Roquette, CC BY-SA 4.0,",
+    "Radiogenic, CC0,",
+    "IntCal20",
+    "IntCal13",
+    "IntCal",
+    # Book 3 ar, ch26: the CTD rosette photograph and its public-domain credit, and the
+    # World Ocean Atlas data credit of the T--S figure, copied exactly.
+    "rosette",
+    "NASA Goddard Space Flight Center, ملك عام،",
+    "World Ocean Atlas 2023",
+    "TEOS-10",
+    # Book 3 ar, ch27: the credits and reference names of the insolation, reanalysis and
+    # IPCC figures and the Trenberth and Caron transport estimates, copied exactly.
+    "عبر Wikimedia Commons",
+    "Reanalysis~1",
+    "NCEP-NCAR",
+    "NOAA PSL, Boulder, Colorado,",
+    "USA, from their website at https://psl.noaa.gov",
+    "https://psl.noaa.gov",
+    "Trenberth and Caron",
+    "IPCC Sixth Assessment Report, Working Group~I, Figure~7.2",
+    # Book 3 ar, ch28: the credits, instruments, historical names and titles of the circulation
+    # figures and history boxes, copied exactly.
+    "NASA, MODIS/LANCE, ملك عام، عبر Wikimedia Commons",
+    "NASA Earth Observatory, ملك عام، عبر Wikimedia Commons",
+    "MODIS",
+    "GOES-11",
+    "George Hadley",
+    "William Ferrel",
+    "Ferrel",
+    "Philosophical Transactions",
+    "An essay on the winds and currents of the ocean",
+    "C.~H.~D. Buys Ballot",
+    "Buys Ballot",
+    "ملك عام،",
+    "NASA Earth Observatory,",
+    "Philosophical",
+    # Book 3 ar, ch29: the names of the scientists, floats and programmes and the credits of the
+    # ocean figures, copied exactly as they are printed.
+    "NOAA, NESDIS, ملك عام، عبر Wikimedia Commons",
+    "مصوّر مجهول من NOAA, ملك عام، عبر Wikimedia Commons",
+    "Yelland and Taylor",
+    "Argo",
+    "Deep Argo",
+    "Fridtjof Nansen",
+    "Vilhelm Bjerknes",
+    "Walfrid Ekman",
+    "Uppsala",
+    "Henry Stommel",
+    "Schmitz",
+    "مصوّر مجهول من NOAA، ملك عام،",
+    "مصوّر مجهول من NOAA",
+)]
+
+# Earth and space Book 4 ar (2026-10-30): photograph credits, data-source names and
+# titles that the chapter captions copy exactly as published (append-only; one entry
+# per credit, never a word added to ALLOWED_WORDS).
+CREDIT_TITLE_PHRASES += [_phrase(t) for t in (
+    # Book 4 ar, ch01: the Pillars of Creation credit.
+    "NASA, ESA and the Hubble Heritage Team (STScI/AURA)",
+    # Book 4 ar, ch02 (also ch18-20): the photographer credit of the Allende and Gibeon photographs.
+    "James St. John",
+    # Book 4 ar, ch03: the name of the USGS basalt reference material, a sample code kept as published.
+    "BHVO-2",
+    # Book 4 ar, ch04: the names of the two isotope reference standards and of the joint
+    # IUPAC--IUGS task group, glossing the acronyms VSMOW and VPDB; copied as published.
+    "Vienna Standard Mean Ocean Water", "Vienna Pee Dee Belemnite", "IUPAC--IUGS",
+    # Book 4 ar, ch05: the photographer credit of the Shiprock dyke photograph.
+    "Dexter Perkins",
+    # Book 4 ar, ch05: the name of the program whose compilation of partial molar volumes
+    # the table cites (Iacovino and Till, 2019), kept as published.
+    "DensityX",
+    # Book 4 ar, ch06: the three USGS photographer credits of the eruption photographs.
+    "D. Griggs", "Austin Post", "Dave Harlow",
+    # Book 4 ar, ch07: the photographer credit of the dunite photograph.
+    "Mike Davis",
+    # Book 4 ar, ch08: the two photographer credits of the layered-intrusion photographs.
+    "Kevin Walsh", "C. Tegner",
+    # Book 4 ar, ch11: the photographer credit of the coesite thin-section photograph.
+    "J. R. Smyth",
+    # Book 4 ar, ch12: the photographer credits of the migmatite and leucogranite-vein photographs.
+    "Kevin M. Gill", "Anne Burgess (Geograph)",
+    # Book 4 ar, ch13: the photographer credits of the pillow-lava and Matterhorn photographs,
+    # and the names of two deep-seismic and seismometer projects (ECORS--CROP, AlpArray).
+    "Lionel Duchoiselle", "Ximonic (Simo Räsänen)", "ECORS--CROP", "AlpArray",
+    # Book 4 ar, ch14: the photographer credits of the Tibetan Plateau and Altiplano photographs.
+    "Jan Kranendonk", "Luca Galuzzi",
+    # Book 4 ar, ch15: the photographer credit of the Siccar Point photograph (lower case as published).
+    "dave souza",
+    # Book 4 ar, ch16: the photographer credit of the North Sea drilling-rig photograph.
+    "Erik Christensen",
+    # Book 4 ar, ch18: the title of the 1998 paper by Hoffman and colleagues, kept in Latin as a cited title.
+    "``A Neoproterozoic Snowball Earth''",
+    # Book 4 ar, ch19: the photographer credit of the Bonarelli-level photograph.
+    "Picenus",
+    # Book 4 ar, ch20: the trace-fossil and Burgess genus names (international nomenclature,
+    # Latin in every edition) and the Archaeopteryx photograph credit, copied exactly.
+    "Waptia",
+    "Marrella",
+    "Skolithos",
+    "Cruziana",
+    "Zoophycos",
+    "Nereites",
+    "H.~Raab",
+    # Book 4 ar, ch20: the second source of the Athy-law constants in the porosity caption.
+    "Turer and Maynard (2003)",
+    "Sclater and Christie (1980)",
+    "Amada44",
+    # Book 4 ar, ch21: the data source of the saturation figure and the international name of
+    # the diagram, kept in Latin once beside its Arabic name, copied exactly.
+    "IAPWS-95",
+    "skew-T log-p",
+    "Stephen Corfidi",
+    # Book 4 ar, ch22: the credit of the Iceland cyclone photograph (NASA team and photographer).
+    "Goddard Space Flight Center", "Rapid Response Team",
+    "Jacques Descloitres",
+    # Book 4 ar, ch24: the photographer credit of the GISP2 ice-core photograph, and the name of
+    # the NorthGRIP drilling project (a proper name kept as published, like GISP2 and LR04).
+    "Anthony Gow", "NorthGRIP",
+    # Book 4 ar, ch28: the photographer credit of the Caraballeda debris-flow photograph.
+    "Lawson Smith",
+    # Book 4 ar, ch30: the name of the vitrinite-reflectance model Easy\%Ro (Sweeney and
+    # Burnham), kept as published like DensityX; the gate sees it as "EasyRo".
+    "EasyRo",
+    # Book 4 ar, ch31: the photographer credits of the ophitic, garnet-schist and microprobe photographs.
+    "Strekeisen", "Jackdann88", "Kallerna",
+)]
+
+
 def check_file(path: pathlib.Path, findings: list) -> None:
     raw = path.read_text(encoding="utf-8")
     rel = str(path)
     body = strip_comments(raw)
     seen = visible_text(body, findings, rel)
+    for _pat in CREDIT_TITLE_PHRASES:
+        seen = _pat.sub(" ", seen)
     _occ: dict = {}
 
     # 1. residual English in visible text
@@ -1604,6 +1829,75 @@ ALLOWED_WORDS |= {"chmee"}
 # Book 2 ar: added by the Arabic Earth and Space Sciences Book 2 agent,
 # 2026-10-26.
 ALLOWED_WORDS |= {"gplates"}
+
+# Earth and Space Book 3 ar: ALLOWED_WORDS entries added by the Book 3 Arabic
+# agent, 2026-10-27, each because the Latin word is a name or symbol that must
+# be printed as it is (Book 3 ar).
+# "wesson": the photographer's surname in the photo credit of ch. 01 (R. Wesson/ESO),
+# a credit that must be copied exactly (Book 3 ar).
+# "lst": the acronym of local sidereal time, a symbol the English prose uses as
+# plain text (ch. 01; Book 3 ar).
+ALLOWED_WORDS |= {"lst"}
+# "david" and "higginbotham": the photographer named in the photo credit of ch. 02
+# (NASA/MSFC/David Higginbotham), copied exactly as the credit requires (Book 3 ar).
+
+# Book 3 ar (ch. 04): the English title of William Smith's 1815 map, "A Delineation
+# of the Strata of England and Wales, with part of Scotland", stays English: a
+# book title is never translated (the French edition keeps it too). Its words
+# was allowed here word by word; it is now the phrase list CREDIT_TITLE_PHRASES
+# (coordinator, 2026-10-27), and the credit and title entries below likewise.
+
+# Book 3 ar (ch. 05): Hutton's "Theory of the Earth" and the journal "Transactions" (titles, kept
+# English), and the photographer's name in the Siccar Point credit ("PawełS", copied exactly).
+
+# Book 3 ar (ch. 06): the name of the World Magnetic Model (a dataset name, printed as
+# it is, like NNR-MORVEL56); "world", "magnetic", "model" stay Latin in the dated box.
+
+# Book 3 ar (ch. 06): the photographer named in the thin-section credit (Darla Sondrol, CC0),
+# copied exactly as the credit requires (Book 3 ar).
+
+# Book 3 ar (ch. 07): the photographers named in the calcite and olivine credits
+# (Giovanna Canu, Eva Santini, Robert Lavinsky, Twyla ...), copied exactly as the
+# credits require, and the LaTeX placement option [htbp] of a table (not prose).
+ALLOWED_WORDS |= {"htbp"}
+# "olivine" is the file name in the \includegraphics path of the mineral photographs
+# (Book 3 ar, ch. 07), not prose; the gate reads it because the option group precedes it.
+ALLOWED_WORDS |= {"olivine"}
+# Book 3 ar (ch. 08): the sRGB transform (a colour-space name, printed as it is) and the
+# French title "Les minéraux des roches" of Lacroix's 1888 handbook (kept as printed; the
+# accent splits "minéraux" into "min" + "raux"). Copied exactly, not translated (Book 3 ar).
+ALLOWED_WORDS |= {"srgb"}
+# Book 3 ar (ch. 09): the photographer named in the Lehmann portrait credit (Even Neuhaus),
+# copied exactly as the credit requires (Book 3 ar).
+
+# Book 3 ar (ch. 10): "Myr" inside the \qty{...}{Myr} unit of the heat-flow constant
+# (a unit symbol, not prose; the other units are allow-listed as ALLOWED_UNITS).
+ALLOWED_WORDS |= {"myr"}
+
+
+# Earth and space Book 4 ar (2026-10-30, ch. 11 thermobarometry): the anorthite-fraction
+# subscript $X_{\text{an}}$, a mineral-site symbol frozen byte for byte inside the \[...\]
+# displays of the GASP barometer (and kept in inline math for consistency); the gate reads
+# \text{} inside math and fires on "an" as SHORT_ENGLISH. Skipped at extraction, like
+# k_{\text{on}}, so the English article "an" in prose stays gated. The same displays write
+# site fractions as $X_{\text{Mg,grt}}$, $X_{\text{Ca,grt}}$ (grt = garnet, the standard
+# mineral abbreviation), matched here as whole subscripts only. Appended (append-only).
+MATH_SUBSCRIPTS |= {"an", "Mg,grt", "Fe,grt", "Ca,grt"}
+
+# Book 5 ar (pilot, 2026-11-04): credits, datasets and titles copied exactly, one exact phrase each, never a word in ALLOWED_WORDS.
+# "dex" is the unit the chapter defines, "kyr" a unit inside siunitx in captions; "rms" the velocity subscript English prints.
+CREDIT_TITLE_PHRASES += [_phrase(t) for t in (
+    "Geodetic Reference System 1980", "GRACE Follow-On", "A. F. Borchert", "Mikenorton", "Ken Lund", "Jim Peaco", "David Mackie",
+    "Michael C. Rygel", "NCEP--NCAR Reanalysis", "NCEP--NCAR", "Journal of Marine Research", "Deep Argo",
+    "Global Ocean Monitoring and Observing Program", "NASA Center for Climate Simulation", "Goddard Space Flight Center",
+    "Coupled Model Intercomparison Project", "ETOPO1 Ice Surface", "NSIDC Sea Ice Index", "Operation IceBridge", "Jim Yungel",
+    "ECOSTRESS Spectral Library", "U.S. Geological Survey", "Wicks and others", "USGS/D. Roddy", "ESA/DLR/FU Berlin",
+    "NASA/ESA/CSA, A Carter (UCSC), the ERS 1386 team, and A. Pagan (STScI)", "NASA Exoplanet Archive", "Exoplanet Archive",
+    "California Institute of Technology", "National Aeronautics and Space Administration", "Exoplanet Exploration Program",
+    "ESO/S. Brunier", "Hubble, heic0602", "NASA, ESA, J. Hester and A. Loll", "Asplund, Amarsi and Grevesse", "Geneva--Copenhagen survey",
+    "NASA and ESA (A. J. Levan, N. R. Tanvir, A. Fruchter and O. Fox)", "Irr, Im", "dex", "kyr",
+)]
+MATH_SUBSCRIPTS |= {"rms"}
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -113,6 +113,20 @@ def interesting(line: str) -> bool:
     return bool(prose_words(t))
 
 
+# Allow-list, per language, of identical lines that are correct as English.
+# Appended by the Dutch Earth & space Book 3 agent, 2026-10-27 (the gate had no
+# allow-list before): Book 3 nl, chapter 04. The title of William Smith's 1815
+# map is a book title, printed in English in every edition; the line is
+# identical to the English twin by design and is not an orphan.
+# Lines that a translation keeps in English on purpose: a published title,
+# printed exactly as English prints it, that a line break happens to isolate.
+# Shared by every language (Earth and space Book 3, 2026-10-28; first met in
+# nl). Add the exact stripped line here, never a word.
+_TITLE_LINES = {"\\emph{A Delineation of the Strata of England and Wales, with part of"}
+ALLOWED_ORPHAN_LINES = {lang: _TITLE_LINES
+                        for lang in ("fr", "nl", "es", "pt", "hi", "ar", "id")}
+
+
 def scan_file(tpath: pathlib.Path, epath: pathlib.Path):
     tlines = tpath.read_text(encoding="utf8").splitlines()
     elines = epath.read_text(encoding="utf8").splitlines()
@@ -143,6 +157,8 @@ def scan_file(tpath: pathlib.Path, epath: pathlib.Path):
         if depth or not interesting(raw):
             continue
         if t not in eset:
+            continue
+        if t in ALLOWED_ORPHAN_LINES.get(tpath.parent.name, ()):
             continue
         words = set(prose_words(t))
         bad = sorted(words & ENGLISH_ONLY)

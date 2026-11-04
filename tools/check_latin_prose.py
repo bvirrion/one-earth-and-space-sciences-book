@@ -306,6 +306,10 @@ def _fragments(text):
     """[(class, string, char-offset)] for every comparable fragment."""
     out = []
     for m in TITLE_RE.finditer(text):
+        # A float placement specifier (\begin{table}[htbp], [h!]) is code,
+        # not a title: reported by the Dutch Earth Book 3 agent, 2026-10-27.
+        if m.group(1) is not None and re.fullmatch(r"\s*[htbpH!]+\s*", m.group(1)):
+            continue
         out.append(("title",
                     m.group(1) if m.group(1) is not None else m.group(2),
                     m.start()))
@@ -355,6 +359,22 @@ def _fragments(text):
             continue
         out.append(("foreach", body, m.start()))
     for m in AXIS_STR_RE.finditer(text):
+        # `symbolic x coords` keys are printed only when the axis gives no
+        # explicit tick labels for that direction. When it does, the keys are
+        # code (matched by name to a figdata column, ASCII in every edition)
+        # and the printed labels are checked through `xticklabels` itself.
+        # Earth Book 3: `{buried, surface}` (ch. 23) and ten closure-chart
+        # keys (ch. 25) needed a per-language allow-list in fr; 2026-10-27,
+        # lenient only.
+        sym = re.match(r"symbolic\s+([xy])", m.group(0))
+        if sym:
+            start = text.rfind("\\begin{axis}", 0, m.start())
+            stop = min([i for i in (text.find("\\addplot", m.end()),
+                                    text.find("\\end{axis}", m.end())) if i >= 0]
+                       or [len(text)])
+            if start >= 0 and re.search(sym.group(1) + r"ticklabels\s*=",
+                                        text[start:stop]):
+                continue
         out.append(("axisstr", m.group(1), m.start()))
     return out
 
@@ -636,6 +656,12 @@ def _has_lowercase_word(s, lang=None):
     # FAILED check_translation.sh with nothing wrong in the text.
     s = re.sub(r"\\includegraphics\s*(?:\[[^\]]*\])?\s*\{[^{}]*\}", " ", s)
     s = re.sub(r"\\omimg\s*\{[^{}]*\}", " ", s)
+    # siunitx option keys are code, not prose: \qty[text-series-to-math=true]
+    # (a bold unit-bearing answer) put "text series math true" into the dup tier
+    # of the French Earth Book 3 edition (01-spherical-astronomy solutions,
+    # 2026-10-26); the translation is correct and the line is identical to its
+    # twin by design.
+    s = re.sub(r"(\\(?:qty|num|ang|unit|si|SI|qtyrange|numrange|angle)\b)\s*\[[^\]]*\]", r"\1", s)
     s = re.sub(r"\\[A-Za-z@]+", " ", s)
     return any(w not in _allowed(lang) for w in LOWER_WORD.findall(s))
 
@@ -1011,6 +1037,156 @@ ALLOWED_BY_LANG["nl"] |= {"bandB", "bandC", "bandD", "bandE", "bandF"}
 # identical in every edition by design, in the BLOCKING foreach tier (see the es
 # entry). Book 2 id
 ALLOWED_BY_LANG["id"] |= {"bandB", "bandC", "bandD", "bandE", "bandF"}
+
+# Appended by the French Earth & space Book 3 agent, 2026-10-26: blocking hits
+# with no untranslated prose in them, none reworded (evidence: the fr edition of
+# Book 3, `bachelor-1`):
+#  * 23-diagenesis-basins, line 188, `symbolic x coords={buried, surface}`: the
+#    two coordinate KEYS of a stacked-bar chart, matched by name to the `state`
+#    column of figdata/out/bachelor-1-compaction-demo.dat, shared by every
+#    edition; the printed tick labels (`xticklabels`) are translated;
+#  * 25-radiometric-methods, line 567, `symbolic y coords={zrupb, spupb, hbar,
+#    mssr, msar, btsr, btar, zrft, kfsar, apft}`: ten coordinate keys of the
+#    closure-temperature chart, never printed (the `yticklabels` are translated);
+#  * 19-weathering-clays, title "Bisiallitisation, monosiallitisation,
+#    allitisation": the three weathering regimes of Pedro (1966), named exactly
+#    so in French (the edition's own definition term);
+#  * 28-atmospheric-circulation, title "Cyclone, anticyclone": the two French
+#    words of the definition, spelt as in English.
+ALLOWED_BY_LANG["fr"] |= {"buried", "surface", "zrupb", "spupb", "hbar", "mssr",
+                          "msar", "btsr", "btar", "zrft", "kfsar", "apft",
+                          "monosiallitisation", "allitisation", "anticyclone"}
+
+# Appended by the Dutch Earth & space Book 3 agent, 2026-10-27: the one blocking
+# node that is correct Dutch, with no untranslated prose in it:
+#  * 28-atmospheric-circulation, line 489, the lake-and-ocean figure label
+#    `warm water` ("warm water", the Dutch phrase, identical in spelling to the
+#    English): both words are Dutch as they stand, the figure is not reworded.
+ALLOWED_BY_LANG["nl"] |= {"warm", "water"}
+
+# Appended by the coordinator of the French Earth & space Book 4 run
+# (`bachelor-2`), 2026-10-28: blocking hits with no untranslated prose in them,
+# none reworded:
+#  * 17-oceanic-islands, line 386, the atoll boreholes as tick labels (Funafuti,
+#    Kita-daito-jima, Bikini, Enewetak, with their years): place names;
+#  * 24-climate-proxies, lines 362 and 498, photograph credits ending
+#    "via Wikimedia Commons.)}": copied exactly by rule; "via" is French;
+#  * 03-elements-in-the-earth, line 79, and 26-deep-time-climate, line 332:
+#    `\foreach` lists of element symbols with the style keys atm, lith, chal,
+#    sid, none, and of ICS colour names (icsOrdovician ...): code, not text;
+#  * mineral, cloud and node words spelt the same in French: muscovite (split
+#    mus-/covite in a node), quartz, diopside, anorthite, enstatite,
+#    cristobalite, collision, coalescence, cumulo-/nimbus, tonnage (Mt);
+#  * 24-climate-proxies, line 428, "Mg/Ca (\\unit{mmol/mol})" (the unit
+#    argument reaches the tokenizer as "mmol", "mol"), and 11-thermobarometry, the
+#    subscripts Mg,grt / Fe,grt / Ca,grt (grt = garnet, the IUGS symbol).
+ALLOWED_BY_LANG["fr"] |= {"daito", "jima", "via", "atm", "lith", "chal", "sid",
+                          "none", "icsOrdovician", "icsSilurian", "icsDevonian",
+                          "icsCarboniferous", "icsPermian", "icsTriassic",
+                          "icsJurassic", "icsCretaceous", "icsPaleogene",
+                          "icsNeogene", "muscovite", "mus", "covite", "quartz",
+                          "diopside", "anorthite", "enstatite", "cristobalite",
+                          "collision", "coalescence", "cumulo", "nimbus",
+                          "tonnage", "grt", "mmol", "mol"}
+
+# Appended (append-only) by the Indonesian Earth & space Book 4 agent,
+# 2026-10-30: the standard aluminosilicate MINERAL ABBREVIATIONS ky/and/sil as
+# \text{} subscripts in the triple-point proof (bachelor-2 10-metamorphic-facies,
+# lines 212-217: $\Delta G_{\text{ky}\to\text{and}}$, $G_{\text{sil}}$). They are
+# symbols, kept byte-identical by id_apply's math census and identical in every
+# edition; Indonesian spells the minerals kianit/andalusit/silimanit, so the
+# symbols cannot be "translated". The id prose gate still catches a free "and".
+ALLOWED_BY_LANG["id"] |= {"and", "sil"}
+
+# Appended (append-only) by the Indonesian Earth & space Book 4 agent,
+# 2026-10-30, mirroring the French entry above: (1) 03-elements-in-the-earth,
+# line 79, the `\foreach` list of element symbols with the Goldschmidt style
+# keys atm, lith, chal, sid, none -- code, byte-identical by design; (2)
+# 11-pt-paths, the site subscripts Mg,grt / Fe,grt / Ca,grt (grt = garnet, the
+# IUGS mineral symbol), frozen by id_apply's math census.
+ALLOWED_BY_LANG["id"] |= {"atm", "lith", "chal", "sid", "none", "grt"}
+
+# Appended (append-only) by the Indonesian Earth & space Book 4 agent,
+# 2026-10-30, mirroring the French entry above: 17-oceanic-islands, line 386,
+# the atoll boreholes as xticklabels (Funafuti, Kita-daito-jima, Bikini,
+# Enewetak with their years) -- place names, identical in every edition.
+ALLOWED_BY_LANG["id"] |= {"daito", "jima"}
+
+# Appended (append-only) by the Indonesian Earth & space Book 4 agent,
+# 2026-10-30, mirroring the French entry above: the ICS colour names in the
+# period-bar `\foreach` lists of 19-phanerozoic-earth (lines 195, 480) and
+# 26-deep-time-climate (line 332) -- colour keys of styles/oneearth.sty, code,
+# byte-identical in every edition.
+ALLOWED_BY_LANG["id"] |= {"icsCambrian", "icsOrdovician", "icsSilurian",
+                          "icsDevonian", "icsCarboniferous", "icsPermian",
+                          "icsTriassic", "icsJurassic", "icsCretaceous",
+                          "icsPaleogene", "icsNeogene", "icsQuaternary"}
+
+# Appended (append-only) by the Indonesian Earth & space Book 4 agent,
+# 2026-10-30, mirroring the French entry above: 24-climate-proxies, line 428,
+# the axis label "Mg/Ca (\\unit{mmol/mol})" -- the siunitx unit argument
+# reaches the tokenizer as "mmol" ("mol" is already listed for id); a unit
+# symbol, identical in every edition.
+ALLOWED_BY_LANG["id"] |= {"mmol"}
+
+# Appended (append-only) by the Spanish Earth & space Book 4 agent (Book 4 es),
+# 2026-10-30, mirroring the French and Indonesian entries above: blocking hits
+# with no untranslated prose in them, none reworded:
+#  * 17-oceanic-islands, line 386, the atoll boreholes as xticklabels
+#    (Funafuti, Kita-daito-jima, Bikini, Enewetak): place names;
+#  * 03-elements-in-the-earth, line 79, the `\foreach` list of element symbols
+#    with the Goldschmidt style keys atm, lith, chal, sid, none, and
+#    26-deep-time-climate, line 332, the ICS colour names: code;
+#  * 11-pt-paths, the site subscripts Mg,grt / Fe,grt / Ca,grt (grt = garnet,
+#    the IUGS symbol), frozen by id_apply's math census;
+#  * 24-climate-proxies, line 428, "Mg/Ca (\\unit{mmol/mol})": unit symbols;
+#  * 12-crustal-melting, line 445, the axis nodes "A/CNK (molar)" and
+#    "A/NK (molar)": "molar" is the Spanish adjective, spelt as in English.
+ALLOWED_BY_LANG["es"] |= {"daito", "jima", "atm", "lith", "chal", "sid", "none",
+                          "icsOrdovician", "icsSilurian", "icsDevonian",
+                          "icsCarboniferous", "icsPermian", "icsTriassic",
+                          "icsJurassic", "icsCretaceous", "icsPaleogene",
+                          "icsNeogene", "grt", "mmol", "mol", "molar"}
+
+# Appended (append-only) by the Portuguese Earth & space Book 4 agent (Book 4 pt),
+# 2026-10-30, mirroring the French, Indonesian and Spanish entries above:
+# blocking hits with no untranslated prose in them, none reworded:
+#  * 17-oceanic-islands, line 386, the atoll boreholes as xticklabels
+#    (Funafuti, Kita-daito-jima, Bikini, Enewetak): place names;
+#  * 20-palaeoenvironments, line 193, a photograph credit ending
+#    "via Wikimedia Commons.)}": copied exactly by rule; "via" is Portuguese;
+#  * 03-elements-in-the-earth, line 79, the `\foreach` list of element symbols
+#    with the Goldschmidt style keys atm, lith, chal, sid, none, and
+#    26-deep-time-climate, line 332, the ICS colour names: code;
+#  * 11-pt-paths, the site subscripts Mg,grt / Fe,grt / Ca,grt (grt = garnet,
+#    the IUGS symbol), frozen by id_apply's math census;
+#  * 12-crustal-melting, line 445, the axis nodes "A/CNK (molar)" and
+#    "A/NK (molar)": "molar" is the Portuguese adjective, spelt as in English.
+ALLOWED_BY_LANG["pt"] |= {"daito", "jima", "via", "atm", "lith", "chal", "sid",
+                          "none", "icsOrdovician", "icsSilurian", "icsDevonian",
+                          "icsCarboniferous", "icsPermian", "icsTriassic",
+                          "icsJurassic", "icsCretaceous", "icsPaleogene",
+                          "icsNeogene", "grt", "molar"}
+
+# Appended (append-only) by the Dutch Earth & space Book 4 agent (Book 4 nl),
+# 2026-10-30, mirroring the French, Indonesian, Spanish and Portuguese entries
+# above: blocking hits with no untranslated prose in them, none reworded:
+#  * 17-oceanic-islands, line 386, the atoll boreholes as xticklabels
+#    (Funafuti, Kita-daito-jima, Bikini, Enewetak): place names;
+#  * 26-deep-time-climate, line 332, the ICS colour names of the period bar:
+#    style keys of styles/oneearth.sty, code;
+#  * 11-pt-paths, the site subscripts Mg,grt / Fe,grt / Ca,grt (grt = garnet,
+#    the IUGS symbol), byte-identical in every edition;
+#  * 22-weather-systems, line 117, the cloud node "cumulo-/nimbus", and
+#    29-ore-deposits, lines 460 and 553, the axis nodes "tonnage (Mt)": Dutch
+#    words spelt as in English (cumulonimbus, tonnage);
+#  * 15-wilson-cycle, line 112, the definition title "Terrane; microcontinent":
+#    both are the Dutch terms (the edition's own \index keys), spelt as in English.
+ALLOWED_BY_LANG["nl"] |= {"daito", "jima", "icsOrdovician", "icsSilurian",
+                          "icsDevonian", "icsCarboniferous", "icsPermian",
+                          "icsTriassic", "icsJurassic", "icsCretaceous",
+                          "icsPaleogene", "icsNeogene", "grt", "cumulo",
+                          "nimbus", "tonnage", "microcontinent"}
 
 if __name__ == "__main__":
     sys.exit(main())

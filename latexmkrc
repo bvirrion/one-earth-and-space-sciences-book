@@ -25,6 +25,30 @@ $out_dir = 'build';
     'one_earth_and_space_sciences_book_2_high_school_hi.tex',
     'one_earth_and_space_sciences_book_2_high_school_ar.tex',
     'one_earth_and_space_sciences_book_2_high_school_id.tex',
+    # Book 3 language editions (fr 2026-10-26; nl es pt hi ar id 2026-10-27)
+    'one_earth_and_space_sciences_book_3_university_year_1_fr.tex',
+    'one_earth_and_space_sciences_book_3_university_year_1_nl.tex',
+    'one_earth_and_space_sciences_book_3_university_year_1_es.tex',
+    'one_earth_and_space_sciences_book_3_university_year_1_pt.tex',
+    'one_earth_and_space_sciences_book_3_university_year_1_hi.tex',
+    'one_earth_and_space_sciences_book_3_university_year_1_ar.tex',
+    'one_earth_and_space_sciences_book_3_university_year_1_id.tex',
+    # Book 4 language editions (fr 2026-10-28; nl es pt hi ar id 2026-10-30)
+    'one_earth_and_space_sciences_book_4_university_year_2_fr.tex',
+    'one_earth_and_space_sciences_book_4_university_year_2_nl.tex',
+    'one_earth_and_space_sciences_book_4_university_year_2_es.tex',
+    'one_earth_and_space_sciences_book_4_university_year_2_pt.tex',
+    'one_earth_and_space_sciences_book_4_university_year_2_hi.tex',
+    'one_earth_and_space_sciences_book_4_university_year_2_ar.tex',
+    'one_earth_and_space_sciences_book_4_university_year_2_id.tex',
+    # Book 5 language editions (pilot method, 2026-11)
+    'one_earth_and_space_sciences_book_5_university_year_3_fr.tex',
+    'one_earth_and_space_sciences_book_5_university_year_3_nl.tex',
+    'one_earth_and_space_sciences_book_5_university_year_3_es.tex',
+    'one_earth_and_space_sciences_book_5_university_year_3_pt.tex',
+    'one_earth_and_space_sciences_book_5_university_year_3_hi.tex',
+    'one_earth_and_space_sciences_book_5_university_year_3_ar.tex',
+    'one_earth_and_space_sciences_book_5_university_year_3_id.tex',
 );
 # Hindi editions (*_hi.tex) need XeLaTeX for OpenType Devanagari, and Arabic
 # editions (*_ar.tex) need LuaLaTeX for babel's Lua bidi engine (bidi=basic); every other

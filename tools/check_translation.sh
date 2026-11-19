@@ -89,7 +89,7 @@ check_year_lang() {
   # "samples at={1,...,16}" is pgfplots syntax, not drafty prose; so is
   # \pgfplotsinvokeforeach{-40,-20,...,340} (Earth grade-7/03; es agent, 2026-10-25).
   if grep -rn '\.\.\.' "$tdir" "$tsdir" 2>/dev/null \
-       | grep -qv '\\dots\|\\ldots\|\\cdots\|\\foreach\|\\pgfplotsinvokeforeach\|samples at\|xtick=\|ytick='; then
+       | grep -qv '\\dots\|\\ldots\|\\cdots\|\\foreach\|\\pgfplotsinvokeforeach\|samples at\|xtick=\|ytick=\|%.*\.\.\.'; then
     bad "drafty ... in prose (use \\dots)" "$year/$lang"
   fi
   dup=$(grep -rho 'label{[^}]*}' "$tdir" "$tsdir" 2>/dev/null | sort | uniq -d)
@@ -138,6 +138,15 @@ check_year_lang() {
   if [ "$lang" = "id" ]; then
     python3 tools/check_indonesian_prose.py --quiet "$tdir" "$tsdir" \
       || bad "Indonesian prose hygiene" "$year/$lang"
+  fi
+
+  # ---- 14. Simplified Chinese prose hygiene: residual Latin in visible text
+  #          (legends included) and ASCII punctuation in Chinese prose.
+  #          See tools/check_chinese_prose.py. (Numbered 14 because 9-13 were
+  #          taken; it sits beside the other script gates.)
+  if [ "$lang" = "zh" ]; then
+    python3 tools/check_chinese_prose.py --quiet "$tdir" "$tsdir" \
+      || bad "Chinese prose hygiene" "$year/$lang"
   fi
 
   # ---- 9. The twin comparison, for every Latin-script target. No word list
@@ -194,7 +203,7 @@ else
   for year in grade-1 grade-2 grade-3 grade-4 grade-5 grade-6 grade-7 \
               grade-8 grade-9 grade-10 grade-11 grade-12 \
               bachelor-1 bachelor-2 bachelor-3; do
-    for lang in fr nl es pt hi ar id; do
+    for lang in fr nl es pt hi ar id zh; do
       # Skip years that have no translation directory yet.
       [ -d "parts/$year/$lang" ] || continue
       check_year_lang "$year" "$lang"

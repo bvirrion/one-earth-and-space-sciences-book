@@ -35,8 +35,10 @@ eight languages since 2026-10-25, Book 2 since 2026-10-26 and Book 3 since
 2026-10-28** (French 2026-10-26, the other six 2026-10-27/28; see "Language editions"
 below). **Book 4 ships in eight languages since 2026-10-30** (French 2026-10-28 as a
 per-chapter pilot, the other six 2026-10-30). **Book 5 ships in eight languages since
-2026-11-04, at the lower pilot tier** (see its section below). Not started: the HTML
-reader, the site.
+2026-11-04, at the lower pilot tier** (see its section below). **All five books also
+ship in Simplified Chinese (`zh`) since 2026-11-19, by the pilot method, at pilot tier 88**
+(see the last section). The HTML reader and site were added 2026-11-05 (key `earth`); `zh` is
+not in the reader yet.
 
 - **Books 1–2 never repeat themselves**: every notion has exactly one owner
   chapter across grades 1–12 (`OUTLINE.md` maps); a later chapter recalls it.
@@ -672,5 +674,32 @@ English science was found or fixed, because nobody recomputed it: **Book 5's Eng
 **Open, for the user:** French part titles print *Licence N année* (`styles/lang/fr.tex`, as in Books 3–4); `\omsolutionof` prints
 *Solução de Exercício N* and *Solution de Exercice N*; Spanish *linación* (59 uses, Books 3–4) for *lineación*; Arabic chapter
 openings print باب while the prose says الفصل, as in Book 4.
+
+## Simplified Chinese, Books 1–5 (pilot method, 2026-11-19)
+
+**All five books ship in `zh` at pilot tier 88**, made in one run with biology's five: one `claude-haiku-5-5` call per
+section (effort medium), the main session (`claude-opus-5-5`) as the only coordinator, no subagents. Run file
+`sources/TRANSLATION_BOOKS_1-5_ZH.md`; score files `translation_scores/book_<N>/zh/`; glossaries
+`sources/GLOSSARY_BOOK_<N>_ZH.md`. Uncommitted, not in the HTML reader.
+
+| Book | pages | links / targets | Haiku calls | list price |
+|---|---:|---:|---:|---:|
+| 1 | 304 | 5,474 / 139 | 368 | $2.0 |
+| 2 | 333 | 2,673 / 140 | 334 | $2.6 |
+| 3 | 423 | 5,759 / 194 | 635 | $6.0 |
+| 4 | 425 | 2,852 / 202 | 538 | $5.7 |
+| 5 | 430 | 1,814 / 244 | 641 | $6.2 |
+
+Every book builds 0/0/0 with TeX Live 2026 (XeLaTeX + xeCJK, Fandol, pinyin index by upmendex), missing character 0;
+`check_translation.sh <year> zh` and `gates.sh <year>` pass for all fifteen years; every English link target is reached.
+
+- **Port.** `styles/lang/zh.tex`, the zh block of `styles/oneearth.sty`, `styles/zh-pinyin.ist`, `latexmkrc`/`release.yml`
+  entries, the CJK term-linker mode and `book<N>_zh.py`, and `tools/check_chinese_prose.py` (per-book allow-lists
+  `ALLOWED_HERE_B<N>`, cited titles as whole phrases in `CITED`, `{figdata/…}` paths blanked).
+- **Units.** Like `fr` and `id`, `zh` writes Ma/Ga/ka for dates and durations, and 年 for `yr`.
+- **Compass letters** after an angle become 北纬/南纬/东经/西经 before it (`../pilot_translation/compass_zh.py`).
+- **Figdata labels** (months, ICS names, supercontinents, cities) are explicit nodes in the zh files, as in the other editions.
+- **Fandol lacks 潟**: write 泻湖.
+- **Open:** nothing; the defects found are listed by class in each score file.
 
 **Never commit.** Leave the working tree for the user.

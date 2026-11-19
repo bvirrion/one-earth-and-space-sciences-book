@@ -29,7 +29,7 @@ done
 # Editions are checked by tools/check_translation.sh gate 5.
 dups=$(find parts -name '*.tex' -not -path '*/fr/*' -not -path '*/nl/*' \
          -not -path '*/es/*' -not -path '*/pt/*' -not -path '*/hi/*' \
-         -not -path '*/ar/*' -not -path '*/id/*' -print0 \
+         -not -path '*/ar/*' -not -path '*/id/*' -not -path '*/zh/*' -print0 \
        | xargs -0 grep -ho 'label{[^}]*}' | sort | uniq -d | grep ":$pfx:")
 [ -n "$dups" ] && { say "duplicate labels: $dups"; fail=1; }
 # 3. typo classes

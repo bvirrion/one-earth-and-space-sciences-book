@@ -171,7 +171,8 @@ def strip_comments(text: str) -> str:
     return "\n".join(out)
 
 
-TEXT_IN_MATH = re.compile(r"\\(?:text|mathrm|textrm|mbox|textup)\s*\{")
+# \index inside a display is a translated key (math Book 4 zh: \index{谱定理} at the end of a \[...\])
+TEXT_IN_MATH = re.compile(r"\\(?:text|mathrm|textrm|mbox|textup|index)\s*\{")
 
 
 def _blank_text_macros(s: str) -> str:
@@ -630,6 +631,7 @@ PROSE_GATES = {
     "id": "check_indonesian_prose",
     "hi": "check_hindi_prose",
     "ar": "check_arabic_prose",
+    "zh": "check_chinese_prose",
 }
 
 

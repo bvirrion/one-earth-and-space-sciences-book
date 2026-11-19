@@ -21,7 +21,7 @@ ENTRY = {
 # translated, French first (2026-10-26); Books 4-5 are English only. A
 # translation adds its code here (and its tools/term_config/book<N>_<lang>.py).
 LANGS = {n: ("en",) for n in (1, 2, 3, 4, 5)}
-LANGS[1] = ("en", "fr", "nl", "es", "pt", "hi", "ar", "id")
+LANGS[1] = ("en", "fr", "nl", "es", "pt", "hi", "ar", "id", "zh")
 LANGS[2] = LANGS[1]
 LANGS[3] = LANGS[1]
 LANGS[4] = LANGS[1]

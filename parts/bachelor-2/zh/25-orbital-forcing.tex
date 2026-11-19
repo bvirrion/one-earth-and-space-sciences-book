@@ -1,0 +1,654 @@
+% Provenance (never printed): see sources/outline_sources.md (Year 2: eccentricity, obliquity and
+% precession; insolation computed from spherical astronomy; the Quaternary cycles; carbon dioxide
+% and feedbacks). Orbital elements and tabulated insolation of Berger and Loutre (1991) via NOAA
+% NCEI (data/derived/bachelor-2-orbit91, fetch_data Book 4 block); periods after Laskar et al.
+% (2004) and the NASA Milankovitch page; history after the NASA Earth Observatory feature (2000);
+% terminations after Barker and Knorr (2021); the mid-Pleistocene transition after Clark et al.
+% (2006) and Koehler and van de Wal (2020). Figures from figdata/bachelor-2/orbital.py; values of
+% the exercises and problem computed in the Book 4 scratch calculator calc/ch25.py.
+\chapter{轨道强迫与冰期}\label{ch:b2:orbital-forcing}
+
+过去一百万年间，地球轨道形状的变化使全球一年内接收到的太阳辐射
+变化不到千分之二：大气层顶处的值介于 \num{340.00} 与
+\qty{340.54}{W.m^{-2}} 之间。同一百万年间，
+北纬 \ang{65} 处七月中旬的日平均日照在约 388 与 \qty{500}{W.m^{-2}} 之间摆动，
+变化幅度超过四分之一。\omterm{def:b2:orbital-forcing:glacials}{冰期}跟随的是后一个数值，而非前一个。本章
+由地球轨道要素计算这两者，并探讨一个纬度、一个季节的日照如何
+能够支配覆盖大陆的冰盖的增长与消退。
+% ledger: data:b4-orbital, berger91:readme
+
+\begin{recall}
+\textbf{物理书回顾}：椭圆、其半长轴 $a$ 与离心率 $e$，开普勒
+定律。\textbf{本科一年级分册回顾}：黄道与黄赤交角 $\varepsilon$，太阳
+赤纬 $\delta$，满足 $\sin\delta = \sin\varepsilon\sin\lambda$（$\lambda$ 为太阳真黄经，
+自春分点沿黄道计量），回归年，以及日平均
+日射量
+\[
+  \bar Q = \frac{S_0}{\pi}\left(\frac{a}{r}\right)^{2}\bigl(h_0\sin\varphi\sin\delta +
+  \cos\varphi\cos\delta\sin h_0\bigr),\qquad \cos h_0 = -\tan\varphi\tan\delta ,
+\]
+及其全球及年平均值 $S_0/(4\sqrt{1 - e^2})$。\textbf{学校分册回顾}：
+\omterm{def:b2:orbital-forcing:glacials}{冰期}旋回与末次盛\omterm{def:b2:orbital-forcing:glacials}{冰期}；辐射强迫。\textbf{前文回顾}：
+\omterm{def:b2:precambrian-earth:ice-albedo}{冰–反照率反馈}（\cref{def:b2:precambrian-earth:ice-albedo}）；底栖有孔虫叠层曲线、EPICA
+Dome C 记录与\omterm{def:b2:climate-proxies:age-model}{年龄模型}（\cref{ch:b2:climate-proxies}）。
+\end{recall}
+% ledger: earth:TSI, earth:obliquity, earth:ecc
+
+\section{轨道及其三个要素}\label{sec:b2:orbital-forcing:elements}
+
+地球轨道是一个以太阳为一个焦点的椭圆。行星，
+尤其是木星与土星，缓慢地使其变形，并使其在轨道平面内转动；太阳与月球
+对赤道隆起的拉力使自转轴像陀螺一样摆动。与日照有关的主要有三个量：
+椭圆的扁长程度、自转轴的倾斜程度，以及
+季节落在轨道上的何处。
+% ledger: nasa:milank-causes
+
+\begin{definition}[近日点经度；气候岁差]\label{def:b2:orbital-forcing:elements}
+\emph{近日点经度}\index{近日点经度} $\varpi$ 是在轨道平面内
+自春分点方向量起、至从太阳看去的近日点方向为止的角度；
+它从移动的春分点起算，因此既随自转轴的摆动而变，
+也随轨道的转动而变。\emph{气候岁差}
+\index{气候岁差}是量 $e\sin\varpi$，也称
+岁差指数。
+\end{definition}
+% ledger: berger91:readme
+
+\begin{omfigure}
+\centering
+\begin{tikzpicture}[scale=0.82, font=\scriptsize, >=Stealth]
+\draw[thick, rotate=101.37] (-0.72,0) ellipse (2.4 and 2.2895);
+\draw[densely dashed, black!60] (-0.331,1.647) -- (0.615,-3.059);
+\draw[->, black!70] (0,0) -- (3.9,0);
+\node[anchor=south, align=center] at (3.75,0.06) {$\gamma$，指向 \\春分点};
+\draw[->, omDef] (0.75,0) arc[start angle=0, end angle=101.37, radius=0.75];
+\node[omDef] at (0.78,0.62) {$\varpi$};
+\fill[ocRed] (0,0) circle (0.13);
+\node[anchor=north west] at (0.05,-0.08) {太阳};
+\foreach \x/\y in {-2.062/0, 0/-3.094, 2.321/0, 0/1.688} {\fill[ocBlue] (\x,\y) circle (0.08);}
+\node[anchor=east, align=right] at (-2.15,0) {三月 \\春分};
+\node[anchor=north west, align=left] at (2.38,-0.08) {九月 \\秋分};
+\node[anchor=west] at (0.1,1.92) {十二月至日};
+\node[anchor=east] at (-0.12,-3.25) {六月至日};
+\fill[black] (-0.331,1.647) circle (0.06);
+\node[anchor=east] at (-0.42,1.72) {近日点};
+\fill[black] (0.615,-3.059) circle (0.06);
+\node[anchor=west] at (0.7,-3.15) {远日点};
+\draw[->, thick, black!60] (-1.9,-1.75) arc[start angle=220, end angle=245, radius=2.6];
+\end{tikzpicture}
+\par\smallskip{\small 从北侧看到的地球轨道，图中离心率被夸大
+至 0.3，今日\omterm{def:b2:orbital-forcing:elements}{近日点经度} $\varpi = \ang{101.4}$。地球沿逆时针方向运动
+（箭头所示）；各点标出其在两分两至时的位置。近日点约在
+十二月至日之后数日出现，远日点约在六月至日之后数日出现。示意图。}
+\end{omfigure}
+% ledger: berger91:rows, nasa:milank-detail
+
+从地球上看，太阳沿黄道运动，其真黄经 $\lambda$ 是
+自春分点起算的角：$\lambda = \ang{90}$ 为六月至日，\ang{270} 为十二月
+至日。地球处于近日点时，太阳位于近日点的反方向，
+即 $\lambda = \varpi + \ang{180}$；今日 $\varpi = \ang{101.37}$，近日点位于
+$\lambda = \ang{281.37}$，即十二月至日之后约 11 天，大约在 1 月 3 日前后。
+% ledger: berger91:rows, nasa:milank-detail
+
+\begin{definition}[米兰科维奇参数]\label{def:b2:orbital-forcing:milankovitch}
+\emph{米兰科维奇参数}\index{米兰科维奇参数}是三个轨道量，
+它们通过季节与纬度决定太阳辐射在地球上的分布：
+离心率 $e$、黄赤交角 $\varepsilon$ 与\omterm{def:b2:orbital-forcing:elements}{气候岁差}
+$e\sin\varpi$。\emph{米兰科维奇理论}\index{米兰科维奇理论}认为，这些量的缓慢
+变化支配第四纪冰盖的增长与消退，其作用经由
+北半球高纬度的夏季日照实现。
+\end{definition}
+% ledger: nasa:milank-detail, eo00:milankovitch
+
+每个参数都有其自身的节律。离心率的主要周期约为 \num{95000}、
+\num{99000}、\num{124000} 与 \num{131000} 年，这些周期合成约
+\num{100000} 年的循环，另有周期为 \num{405000} 年的成分，是所有成分中最稳定的一个；在过去
+一百万年里，离心率在 \num{0.0046} 与 \num{0.0565} 之间变化，今日为 \num{0.0172}，且正在缓慢
+减小。黄赤交角的主要周期为 \num{40978} 年，在过去一百万年间介于 \ang{22.1}
+与 \ang{24.5} 之间；今日为 \ang{23.44}，它正在减小，其上一次最大值
+出现在约 \num{10000} 年前。自转轴约以 \num{25770} 年的周期摆动，
+而轨道约以 \num{112000} 年的周期转动；二者共同使近日点在季节间移动，
+主要周期约为 \num{19000}、\num{22400} 与 \num{23700} 年。
+% ledger: la04:eccentricity, la04:obliquity, la04:precession, nasa:milank-detail, data:b4-orbital
+
+\begin{omfigure}
+\centering
+% figdata/bachelor-2/orbital.py part elements
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=1 by 3, vertical sep=0.3cm, xlabels at=edge bottom,
+  xticklabels at=edge bottom}, width=0.96\linewidth, height=3.1cm, xmin=0, xmax=1000,
+  xtick={0,100,...,1000}, tick label style={font=\scriptsize}, label style={font=\small},
+  scaled y ticks=false, yticklabel style={/pgf/number format/fixed,
+  /pgf/number format/precision=2}]
+\nextgroupplot[ylabel={$e$}, ymin=0, ymax=0.085, ytick={0,0.02,0.04,0.06}]
+\addplot[omDef, thin] table[x=age_ka, y=ecc] {figdata/out/bachelor-2-orbital-elements.dat};
+\node[font=\scriptsize, anchor=north west] at (rel axis cs:0.01,0.97) {a\enspace 离心率};
+\nextgroupplot[ylabel={$\varepsilon$ (\unit{\degree})}, ymin=21.9, ymax=25.4, ytick={22,23,24}]
+\addplot[ocBlue, thin] table[x=age_ka, y=obl] {figdata/out/bachelor-2-orbital-elements.dat};
+\node[font=\scriptsize, anchor=north west] at (rel axis cs:0.01,0.97) {b\enspace 黄赤交角};
+\nextgroupplot[ylabel={$e\sin\varpi$}, ymin=-0.07, ymax=0.12, ytick={-0.05,0,0.05},
+  xlabel={年龄（1950 年以前的千年数）}]
+\addplot[ocRed, thin] table[x=age_ka, y=prec] {figdata/out/bachelor-2-orbital-elements.dat};
+\node[font=\scriptsize, anchor=north west] at (rel axis cs:0.01,0.97) {c\enspace 气候
+岁差};
+\end{groupplot}
+\end{tikzpicture}
+\par\smallskip{\small 过去一百万年的三个\omterm{def:b2:orbital-forcing:milankovitch}{米兰科维奇参数}：(a)
+离心率；(b) 黄赤交角；(c) \omterm{def:b2:orbital-forcing:elements}{气候岁差}，其包络线即为离心率。
+数据来源：Berger and Loutre (1991)，NOAA NCEI Paleoclimatology，获取日期为 2026 年 10 月 23 日。}
+\end{omfigure}
+% ledger: data:b4-orbit91
+
+\omterm{def:b2:orbital-forcing:elements}{气候岁差}变化很快，但只在离心率允许的范围内变化：当轨道
+接近圆形时，如 \num{400000} 年前，近日点位于何处几乎无关紧要。
+图中清楚地显示了这一点：子图 (c) 的包络线即子图 (a)。
+% ledger: data:b4-orbit91
+
+\section{轨道带来的日照}\label{sec:b2:orbital-forcing:insolation}
+
+上文回顾的日平均日射量还需要再加一个因素：
+某一天太阳的距离。
+
+\begin{proposition}[地日距离与太阳黄经]\label{prop:b2:orbital-forcing:distance}
+设太阳的真黄经为 $\lambda$，则地日距离为
+\[
+  \frac{r}{a} = \frac{1 - e^2}{1 - e\cos(\lambda - \varpi)} .
+\]
+在六月至日（$\lambda = \ang{90}$）处，关于 $e$ 取一阶近似，
+有 $(a/r)^2 \approx 1 - 2e\sin\varpi$；在十二月至日处，$(a/r)^2 \approx 1 + 2e\sin\varpi$。
+\end{proposition}
+
+\begin{proof}
+在以太阳为焦点的椭圆上，$r/a = (1 - e^2)/(1 + e\cos v)$，其中真近点角 $v$
+是从太阳处量得的、由近日点至地球的夹角。从太阳看地球的
+方向与从地球看太阳的方向相反，因此从太阳看地球的黄经为
+$\lambda + \ang{180}$，且 $v = \lambda + \ang{180} - \varpi$，$\cos v = -\cos(\lambda - \varpi)$。
+当 $\lambda = \ang{90}$ 时，$\cos(\lambda - \varpi) = \sin\varpi$，且 $(a/r)^2 = (1 -
+e\sin\varpi)^2/(1 - e^2)^2 = 1 - 2e\sin\varpi + O(e^2)$；当 $\lambda = \ang{270}$ 时符号改变。
+\end{proof}
+
+因此，\omterm{def:b2:orbital-forcing:elements}{气候岁差}正是恰当的指标：它度量的是六月至日时地球比平均距离
+更靠近太阳或更远离太阳的程度。当 $e\sin\varpi$ 为较大的正值时，如今日及
+\num{116000} 年前更甚，北半球夏季接近远日点，因而较弱；当其为
+较大的负值时，如约 \num{10000} 年前，北半球夏季接近近日点。
+% ledger: berger91:rows
+
+\begin{example}[今日北纬 \ang{65} 的六月太阳]\label{ex:b2:orbital-forcing:today}
+今日 $e = 0.017236$，$\varpi = \ang{101.37}$，$\varepsilon = \ang{23.446}$，表中取
+$S_0 = \qty{1360}{W.m^{-2}}$。在六月至日 $\delta = \varepsilon$；在 $\varphi =
+\ang{65}$ 处，$\cos h_0 = -\tan\ang{65}\tan\ang{23.446} = -0.9301$，故 $h_0 = \ang{158.44} =
+\qty{2.7654}{rad}$：太阳在地平线以上停留 $2 \times 158.44/360 \times 24 = 21.1$~小时。
+日射量公式中的括号项为 $2.7654 \times 0.9063 \times 0.3979 + 0.4226 \times 0.9174 \times 0.3674 =
+1.1397$，取平均距离时 $\bar Q = 432.90 \times 1.1397 = \qty{493.4}{W.m^{-2}}$。
+距离因子为 $(a/r)^2 = 0.9671$，故 $\bar Q = \qty{477.1}{W.m^{-2}}$。
+\end{example}
+% ledger: berger91:rows, berger91:readme, data:b4-orbital
+
+开普勒第二定律还带来一个转折。在远日点附近，地球运动较慢：落在该处的季节
+虽较弱，但持续时间更长。如今北半球夏季比北半球冬季约长 4.5 天，
+春季比秋季约长三天。
+% ledger: nasa:milank-detail
+
+\begin{proposition}[年平均值与岁差无关]\label{prop:b2:orbital-forcing:annual}
+大气层顶处，太阳位于两给定黄经之间时单位面积所接收的能量，
+与 $\varpi$ 无关；任一纬度的年平均日射量，等于半径为 $a$ 的
+圆轨道上的相应值乘以 $1/\sqrt{1 - e^2}$。在极点，年平均值为
+\[
+  \bar Q_{\text{极}} = \frac{S_0\sin\varepsilon}{\pi\sqrt{1 - e^2}} ,
+\]
+它随黄赤交角增大而增大。
+\end{proposition}
+
+\begin{proof}
+由开普勒第二定律，径矢以恒定速率 $\pi ab/T$ 扫过面积，
+地球转过 $\mathrm d\lambda$ 时所扫过的面积为 $\frac12 r^2\,\mathrm d\lambda$，故 $\mathrm dt =
+T r^2\,\mathrm d\lambda/(2\pi ab)$，其中 $b = a\sqrt{1 - e^2}$。在给定纬度
+及太阳黄经处，日射量为 $(a/r)^2$ 乘以 $Q_a(\lambda)$，后者为距离 $a$ 处的值，因此
+所接收的能量为 $\int Q_a(\lambda)(a/r)^2\,\mathrm dt = \frac{T}{2\pi\sqrt{1 - e^2}}\int
+Q_a(\lambda)\,\mathrm d\lambda$：距离因子已消去，$\varpi$ 也随之消失。在整个
+一年内，$\lambda$ 取遍 \ang{360}，其平均值为 $\frac{1}{2\pi\sqrt{1-e^2}}\int_0^{2\pi}
+Q_a\,\mathrm d\lambda$。在北极，$Q_a = S_0\sin\delta = S_0\sin\varepsilon\sin\lambda$
+当 $0 < \lambda < \pi$ 时成立，其余情形为 0；积分值为 $2S_0\sin\varepsilon$。
+\end{proof}
+% ledger: earth:TSI
+
+岁差只改变太阳辐射在不同季节之间的分配，不改变一年内的总量；离心率
+使全年总量乘以因子 $1/\sqrt{1 - e^2}$，在过去
+一百万年中至多变化 \qty{0.16}{\percent}；黄赤交角使太阳辐射在不同纬度间重新分配，
+使极地年平均值升高，赤道处则略有降低。只有季节与纬度的分布
+发生较大变化，下图即展示了这一点。
+% ledger: data:b4-orbital, nasa:milank-detail
+
+\begin{omfigure}
+\centering
+% figdata/bachelor-2/orbital.py part lat
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.6cm},
+  tick label style={font=\scriptsize}, label style={font=\small}, height=5.4cm,
+  width=0.48\linewidth, xmin=-90, xmax=90, xtick={-90,-60,...,90}, xlabel={纬度
+  (\unit{\degree})}, ylabel={$\bar Q$ (\unit{W.m^{-2}})}]
+\nextgroupplot[ymin=0, ymax=650, title={a\enspace 六月至日}, title style={font=\scriptsize},
+  legend style={font=\scriptsize, at={(0.03,0.97)}, anchor=north west, draw=none},
+  legend cell align=left]
+\addplot[black, thick] table[x=lat, y=jun_0] {figdata/out/bachelor-2-orbital-lat.dat};
+\addlegendentry{今日}
+\addplot[ocRed, thick, densely dashed] table[x=lat, y=jun_10] {figdata/out/bachelor-2-orbital-lat.dat};
+\addlegendentry{\num{10000} 年前}
+\nextgroupplot[ymin=100, ymax=500, title={b\enspace 年平均值}, title style={font=\scriptsize},
+  legend style={font=\scriptsize, at={(0.5,0.03)}, anchor=south, draw=none},
+  legend cell align=left]
+\addplot[ocBlue, thick] table[x=lat, y=ann_lo] {figdata/out/bachelor-2-orbital-lat.dat};
+\addlegendentry{$\varepsilon = \ang{22.1}$}
+\addplot[ocRed, thick, densely dashed] table[x=lat, y=ann_hi] {figdata/out/bachelor-2-orbital-lat.dat};
+\addlegendentry{$\varepsilon = \ang{24.5}$}
+\end{groupplot}
+\end{tikzpicture}
+\par\smallskip{\small (a) 六月至日的日平均日射量，今日与 \num{10000} 年
+前相比，彼时北半球夏季接近近日点，黄赤交角也较大：北半球高纬度处多出约
+\qty{50}{W.m^{-2}}。(b) 过去一百万年两个极端黄赤交角下的年平均日射量，
+离心率取今日值：倾角较大时，
+更多阳光抵达极地，回归线一带则略少。由轨道根数
+计算，取 $S_0 = \qty{1360}{W.m^{-2}}$。}
+\end{omfigure}
+% ledger: data:b4-orbital, data:b4-orbit91
+
+\section{计算日射量曲线}\label{sec:b2:orbital-forcing:curve}
+
+米兰科维奇所建立的日射量曲线，如今已是常规计算。过去的轨道根数
+由行星运动积分求得，每隔一千年列表给出，
+它们即为输入。对每个年代，下述方法给出任意纬度与季节的日射量。
+
+\begin{method}[过去的日射量]\label{met:b2:orbital-forcing:curve}
+\begin{enumerate}
+  \item 读取所求年代的 $e$、$\varpi$ 与 $\varepsilon$。
+  \item 按太阳真黄经 $\lambda$ 选取季节：六月至日取 \ang{90}；
+        表中七月中旬对应 $\lambda = \ang{120}$。
+  \item 计算 $\delta$（由 $\sin\delta = \sin\varepsilon\sin\lambda$ 得出），并求
+        日落时角 $h_0$，纬度 $\varphi$ 处（若 $|\tan\varphi\tan\delta| > 1$，则为极昼或极夜）。
+  \item 由\cref{prop:b2:orbital-forcing:distance}计算距离因子 $(a/r)^2$。
+  \item 按下式计算：$\bar Q = (S_0/\pi)(a/r)^2(h_0\sin\varphi\sin\delta +
+        \cos\varphi\cos\delta\sin h_0)$。
+\end{enumerate}
+\end{method}
+% ledger: berger91:readme, data:b4-orbital
+
+将本方法用于过去一百万年的 1001 个年代，其结果复现表中给出的七月中旬
+北纬 \ang{65} 处日射量，误差在 \qty{0.012}{W.m^{-2}} 以内（即表格的舍入误差），
+并且今日六月的表值完全一致。表格以 1950 年为时间原点。
+% ledger: data:b4-orbital, berger91:readme
+
+\begin{omfigure}
+\centering
+% figdata/bachelor-2/orbital.py part jul65
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=1 by 2, vertical sep=0.3cm, xlabels at=edge bottom,
+  xticklabels at=edge bottom}, width=0.96\linewidth, xmin=0, xmax=400, xtick={0,50,...,400},
+  tick label style={font=\scriptsize}, label style={font=\small}]
+\nextgroupplot[height=5.0cm, ymin=370, ymax=590, ylabel={北纬 \ang{65} 处 $\bar Q$
+  (\unit{W.m^{-2}})}, legend style={font=\scriptsize, at={(0.5,1.02)}, anchor=south, draw=none,
+  legend columns=3, /tikz/every even column/.append style={column sep=6pt}},
+  legend cell align=left]
+\addplot[black!45, line width=2.2pt] table[x=age_ka, y=tab] {figdata/out/bachelor-2-orbital-jul65.dat};
+\addlegendentry{七月中旬，表列值}
+\addplot[ocRed, thin] table[x=age_ka, y=calc] {figdata/out/bachelor-2-orbital-jul65.dat};
+\addlegendentry{七月中旬，计算值}
+\addplot[ocBlue, thin, densely dashed] table[x=age_ka, y=jun65] {figdata/out/bachelor-2-orbital-jul65.dat};
+\addlegendentry{六月至日，计算值}
+\nextgroupplot[height=2.8cm, ymin=-0.02, ymax=0.02, ytick={-0.01,0,0.01},
+  scaled y ticks=false, yticklabel style={/pgf/number format/fixed}, ylabel={残差},
+  xlabel={年龄（千年，距 1950 年）}]
+\addplot[only marks, mark=*, mark size=0.35pt, black] table[x=age_ka, y=resid]
+  {figdata/out/bachelor-2-orbital-jul65.dat};
+\end{groupplot}
+\end{tikzpicture}
+\par\smallskip{\small 上图：北纬 \ang{65} 处过去 \num{400000} 年的日平均日射量，
+七月中旬的表列值取自伯格与卢特尔（灰色，较粗），计算值取自上述方法（红色），
+六月至日的计算值（蓝色，虚线）。下图：七月中旬计算值减表列值，单位为
+\unit{W.m^{-2}}。}
+\end{omfigure}
+% ledger: data:b4-orbit91, data:b4-orbital
+
+两个特征十分突出。曲线主要由\omterm{def:b2:orbital-forcing:elements}{气候岁差}主导，峰值相隔约
+\num{20000} 年，其高度随离心率增减；黄赤交角
+带来较慢的调制。振幅也很大：过去 \num{800000} 年间，七月中旬的数值
+在 388 至 \qty{497}{W.m^{-2}} 之间变化。
+% ledger: data:b4-orbital
+
+\section{米兰科维奇理论与冰期旋回}\label{sec:b2:orbital-forcing:theory}
+
+\begin{history}[北纬六十五度的日照]
+米卢廷·米兰科维奇生于 1879 年，依据日照的季节与纬度变化建立了气候的数学理论。综合三种轨道变化，
+他计算了各纬度的日射量及相应的地表温度，时段为 1800 年以前的
+\num{600000} 年。在气候学家柯本的建议下，他选取夏季
+北纬 \ang{65} 处的日射量作为决定性量：大冰盖曾在
+该纬度附近发育，凉爽的夏季融化的冬雪较少，积雪因而逐年累积。
+他认为黄赤交角是三个参数中最重要的。该理论在约五十年间
+基本被忽视；米兰科维奇卒于 1958 年。1976 年，海斯、因布里与沙克尔顿
+在过去 \num{450000} 年的深海沉积物中发现了气候变率的谱峰，
+周期约为 \num{23000}、\num{42000} 与 \num{100000} 年，分别对应岁差、黄赤交角与
+离心率的周期，并断定地球轨道变化是
+第四纪\omterm{def:b2:orbital-forcing:glacials}{冰期}的根本原因。
+\end{history}
+% ledger: eo00:milankovitch, nasa:milank-detail, hays76:periods
+
+下图在\cref{ch:b2:climate-proxies}中的记录上重复了他们的检验，比较了
+振幅谱（各周期的强度）：北纬 \ang{65} 处七月日射量与
+底栖叠加记录，取两个各为 \num{700000} 年的时段。
+
+\begin{omfigure}
+\centering
+% figdata/bachelor-2/orbital.py part spectrum
+\begin{tikzpicture}
+\begin{axis}[width=0.9\linewidth, height=5.6cm, xmin=10, xmax=150, ymin=0, ymax=1.08,
+  xlabel={周期（千年）}, ylabel={相对振幅},
+  xtick={19,23,41,100,150}, tick label style={font=\scriptsize}, label style={font=\small},
+  legend style={font=\scriptsize, at={(0.5,1.02)}, anchor=south, draw=none, legend columns=3,
+  /tikz/every even column/.append style={column sep=6pt}}, legend cell align=left]
+\addplot[black!50, thick] table[x=period, y=amp_ins] {figdata/out/bachelor-2-orbital-spectrum.dat};
+\addlegendentry{北纬 \ang{65} 日射量，0--\qty{700}{ka}}
+\addplot[ocRed, thick] table[x=period, y=amp_young] {figdata/out/bachelor-2-orbital-spectrum.dat};
+\addlegendentry{LR04，0--\qty{700}{ka}}
+\addplot[ocBlue, thick, densely dashed] table[x=period, y=amp_old] {figdata/out/bachelor-2-orbital-spectrum.dat};
+\addlegendentry{LR04，\numrange{1250}{1950}~ka}
+\end{axis}
+\end{tikzpicture}
+\par\smallskip{\small 振幅谱，各自以其最大值归一化，对象为北纬 \ang{65} 处七月日射量
+在过去 \num{700000} 年间的变化，以及 LR04 底栖叠加记录在同一时段
+与 \num{1250000} 至 \num{1950000} 年前的时段（去趋势并加窗）。日射量的
+功率集中于岁差周期（约 19 至 24 千年）及黄赤交角周期；
+近期冰量峰值位于 \num{100000} 年附近，而日射量在此几乎没有功率；
+较早的冰量峰值位于 \num{41000} 年。}
+\end{omfigure}
+% ledger: data:b4-orbital, data:lr04, hays76:periods
+
+\subsection*{冰期、间冰期与冰消期终止}
+
+\begin{definition}[冰期；间冰期；冰消期终止]\label{def:b2:orbital-forcing:glacials}
+在第四纪记录中，\emph{冰期}\index{冰期}是指北方大陆被大面积
+冰盖覆盖的时段，表现为底栖 $\delta^{18}$O 偏高、海平面偏低；
+\emph{间冰期}\index{间冰期}是指北半球（格陵兰除外）陆地冰量很少的时段，
+与现今相似。\emph{冰消期
+终止}\index{冰消期终止}是结束冰期旋回的主要转变之一，
+由盛冰期条件转入间冰期条件，速度远快于此前冰量的增长。
+\end{definition}
+% ledger: kohler20:mpt, barker21:terminations, ipcc:ref-periods
+
+过去五十万年间，气候的主导周期接近 \num{100000} 年，
+尽管该周期处的强迫仅来自偏心率，
+与黄赤交角和岁差的强迫相比可以忽略。这些旋回也不对称：底栖 $\delta^{18}$O
+记录显示冰量以阶梯式增长约 \num{90000} 年，随后
+约 \num{10000} 年内迅速衰减，呈锯齿状，其下降沿即为\omterm{def:b2:orbital-forcing:glacials}{冰消期终止}。末次\omterm{def:b2:orbital-forcing:glacials}{间冰期}，自
+约 \num{129000} 至 \num{116000} 年前，其结束时北纬 \ang{65} 处的夏季日射量下降至
+过去 \num{800000} 年中的最低值之一：六月至日的数值
+达到最小值 \qty{438.6}{W.m^{-2}}，出现于 \num{116000} 年前；七月中旬的数值则
+达到次小值 \qty{392.2}{W.m^{-2}}，出现于 \num{114000} 年前。末次盛\omterm{def:b2:orbital-forcing:glacials}{冰期}
+出现于此后约 \num{95000} 年。
+% ledger: barker21:terminations, ipcc:ref-periods, data:b4-orbital, data:b4-orbital-extremes
+
+冰盖能以多快的速度跟随其强迫？最简单的模型将冰量 $V$ 视为
+向现今日射量所能维持的体积 $V_{\mathrm{eq}}$ 弛豫，响应时间为
+$\tau$：
+\[
+  \frac{\mathrm dV}{\mathrm dt} = \frac{V_{\mathrm{eq}}(t) - V}{\tau} .
+\]
+
+\begin{proposition}[滞后响应]\label{prop:b2:orbital-forcing:lag}
+对于强迫 $V_{\mathrm{eq}} = A\sin\omega t$，滞后模型的解趋于
+\[
+  V = \frac{A}{\sqrt{1 + \omega^2\tau^2}}\,\sin\bigl(\omega(t - t_{\ell})\bigr),\qquad
+  t_{\ell} = \frac{\arctan(\omega\tau)}{\omega} :
+\]
+冰量几乎完全跟随缓慢的强迫，而对快速的强迫只有微弱响应，且总是滞后。
+对若干正弦项之和的响应，等于各项响应之和：模型不会产生其强迫
+所不具有的周期。
+\end{proposition}
+
+\begin{proof}
+试取 $V = B\sin\omega t + C\cos\omega t$，代入得 $\omega B\tau = -C$，且 $-\omega C\tau = A -
+B$，于是 $B = A/(1 + \omega^2\tau^2)$，$C = -\omega\tau A/(1 + \omega^2\tau^2)$，振幅
+为 $\sqrt{B^2 + C^2} = A/\sqrt{1 + \omega^2\tau^2}$，相位滞后为 $\arctan(\omega\tau)$。任何其他
+解与此解相差 $\mathrm e^{-t/\tau}$ 的某一倍数，该项会衰减至零。方程
+是线性的，因此解可以叠加。
+\end{proof}
+
+\begin{omfigure}
+\centering
+% figdata/bachelor-2/orbital.py part lag
+\begin{tikzpicture}
+\begin{axis}[width=0.96\linewidth, height=5.4cm, xmin=0, xmax=400, ymin=-3.4, ymax=4.2,
+  xtick={0,50,...,400}, xlabel={年龄（1950 年以前的千年数）},
+  ylabel={标准化值}, tick label style={font=\scriptsize}, label style={font=\small},
+  legend style={font=\scriptsize, at={(0.5,1.02)}, anchor=south, draw=none, legend columns=3,
+  /tikz/every even column/.append style={column sep=6pt}}, legend cell align=left]
+\addplot[black!35, thin] table[x=age_ka, y=forcing] {figdata/out/bachelor-2-orbital-lag.dat};
+\addlegendentry{北纬 \ang{65} 处日射量（取负）}
+\addplot[ocRed, thick] table[x=age_ka, y=model] {figdata/out/bachelor-2-orbital-lag.dat};
+\addlegendentry{滞后模型，$\tau = \qty{10}{ka}$}
+\addplot[black, thick] table[x=age_ka, y=lr04] {figdata/out/bachelor-2-orbital-lag.dat};
+\addlegendentry{LR04（冰量增加）}
+\end{axis}
+\end{tikzpicture}
+\par\smallskip{\small 滞后模型以北纬 \ang{65} 处七月中旬的日射量驱动（日照越少，冰量越多），
+与底栖叠加记录相比，三者均经标准化（均值为 0，标准差为
+1）；正值表示冰量更多。模型能跟随叠加记录中岁差尺度的起伏，但
+没有其大幅度的锯齿状旋回。响应时间 \qty{10}{ka} 为模型所取的参数。}
+\end{omfigure}
+% ledger: data:b4-orbital, data:lr04
+
+过去 \num{800000} 年间，滞后模型与叠加记录的相关系数为 $r = 0.42$，
+而日射量本身仅为 $0.23$：滞后有所帮助，但线性冰盖无法
+由并不具有此周期的强迫产生 \num{100000} 年的旋回。\omterm{def:b2:orbital-forcing:glacials}{冰消期终止}
+必定涉及非线性行为，以放大来自日射量的温和推动。候选机制是作用于整个气候系统的反馈：
+\omterm{def:b2:precambrian-earth:ice-albedo}{冰–反照率反馈}（见\cref{def:b2:precambrian-earth:ice-albedo}），即覆盖更多冰雪的行星
+会反射更多阳光；以及二氧化碳，它在南极冰芯中
+于千年尺度上升，每当大西洋经向翻转环流减弱，正如
+冰盖融水倾入北大西洋时的情形。超过某一二氧化碳阈值后，
+\omterm{def:b2:orbital-forcing:glacials}{间冰期}条件即可趋于稳定。
+% ledger: data:b4-orbital, barker21:terminations, eo00:milankovitch
+
+\begin{definition}[中更新世转型]\label{def:b2:orbital-forcing:mpt}
+\emph{中更新世转型}\index{中更新世转型}是指
+约 \num{1250000} 至 \num{700000} 年前，\omterm{def:b2:orbital-forcing:glacials}{冰期}旋回由约 \num{41000} 年、振幅小的
+周期转变为准周期性的约 \num{100000} 年、振幅大的旋回，冰盖
+更厚，而轨道强迫并无任何相应变化。
+\end{definition}
+% ledger: clark06:mpt, nasa:milank-detail, kohler20:mpt
+
+转变之前，冰盖跟随黄赤交角变化，如上图虚线谱
+所示。一项统计显示，在第四纪早、中、晚期的黄赤交角周期中，\omterm{def:b2:orbital-forcing:glacials}{冰消期终止}分别占
+67、88 和 \qty{52}{\percent}。仅凭轨道理论无法解释这一变化，可能原因包括
+冰盖自身的动力学，或许是在其滑动所依托的松软风化层被移除之后，
+以及\omterm{def:b2:orbital-forcing:glacials}{冰期}极小值期间二氧化碳的逐渐下降。目前
+尚无普遍公认的解释。
+% ledger: kohler20:mpt, nasa:milank-detail, clark06:mpt
+
+\section{冰期旋回中的二氧化碳}\label{sec:b2:orbital-forcing:co2}
+
+南极冰芯表明，二氧化碳随\omterm{def:b2:orbital-forcing:glacials}{冰期}旋回而变化：末次盛\omterm{def:b2:orbital-forcing:glacials}{冰期}时介于 188 与
+\qty{194}{ppm} 之间，末次\omterm{def:b2:orbital-forcing:glacials}{间冰期}时介于 266 与 \qty{282}{ppm} 之间；
+在\cref{ch:b2:climate-proxies}中的综合记录给出，19 至
+\qty{23}{ka} 时为 \qty{189.7}{ppm}，工业化前两千年间为 \qty{279.4}{ppm}。其辐射强迫
+近似与浓度的对数成正比，每加倍一次为 \qty{3.93}{W.m^{-2}}。
+% ledger: ipcc:fig2-34, data:b4-proxies-co2, ipcc:log-co2, ipcc:erf-2xco2
+
+\begin{example}[轨道与二氧化碳对比]\label{ex:b2:orbital-forcing:co2}
+由 \qty{189.7}{ppm} 增至 \qty{279.4}{ppm}，强迫为 $3.93\log_2(279.4/189.7) = 3.93 \times
+0.559 = \qty{2.2}{W.m^{-2}}$，对全球和全年平均而言。轨道在过去
+一百万年间，使日射量的全球年平均值至多改变 $340.54 - 340.00 =
+\qty{0.54}{W.m^{-2}}$，而北纬 \ang{65} 处七月中旬的日射量则改变约 \qty{109}{W.m^{-2}}。
+\end{example}
+% ledger: data:b4-proxies-co2, ipcc:erf-2xco2, ipcc:log-co2, data:b4-orbital
+
+轨道是起搏器，而非引擎。它在季节与纬度之间重新分配日照，
+并决定时间节奏；冰盖凭借其反照率与缓慢的响应，
+二氧化碳凭借其全球性的强迫，把区域性的信号变为全球性的气候变化。
+% ledger: hays76:periods, barker21:terminations, eo00:milankovitch
+
+\section*{练习}\label{sec:b2:orbital-forcing:exercises}
+
+除非另有说明，练习所用数据如下：$S_0 = \qty{1360}{W.m^{-2}}$（表中
+数值）；回归年为 \num{365.2422} 天；轨道根数取表中数值，
+其中今日 $e = 0.017236$，$\varpi = \ang{101.37}$，$\varepsilon = \ang{23.446}$。
+% ledger: berger91:readme, berger91:rows
+
+\begin{exercise}[$\star$]\label{exo:b2:orbital-forcing:1}
+取 $e = 0.0167$。（a）求远日点距离 $a(1 + e)$ 与近日点距离
+$a(1 - e)$ 之比。（b）将二者之差表示为 $a$ 的百分比。（c）
+近日点处的日照比远日点处强多少倍？
+\end{exercise}
+% ledger: earth:ecc, nasa:milank-detail
+
+\begin{exercise}[$\star$]\label{exo:b2:orbital-forcing:2}
+表中给出今日 $e = 0.017236$，$\varpi = \ang{101.37}$；$e = 0.019971$，$\varpi =
+\ang{293.86}$，\num{10000} 年前；$e = 0.019249$，$\varpi = \ang{359.99}$，\num{6000} 年前。
+（a）求各时刻的\omterm{def:b2:orbital-forcing:elements}{气候岁差}。（b）对每个时刻，给出
+近日点处太阳的黄经。（c）近日点最接近夏至点的是哪个时刻，
+最接近秋分点的又是哪个时刻？
+\end{exercise}
+% ledger: berger91:rows
+
+\begin{exercise}[$\star$]\label{exo:b2:orbital-forcing:3}
+自转轴相对恒星以约 \num{25770} 年的周期进动，而
+轨道以约 \num{112000} 年的周期转动。假设两种运动使近日点相对春分点的移动方向一致，
+从而二者频率相加。（a）合并这两个频率，
+求近日点穿越季节的周期。
+（b）与\omterm{def:b2:orbital-forcing:elements}{气候岁差}的主要周期 \num{19.0}、
+\num{22.4} 与 \num{23.7} 千年作比较。
+\end{exercise}
+% ledger: nasa:milank-detail, la04:precession
+
+\begin{exercise}[$\star$]\label{exo:b2:orbital-forcing:4}
+利用 \cref{prop:b2:orbital-forcing:annual} 并取 $e = 0.0167$，求
+北极点处、黄赤交角分别为 \ang{22.1} 与 \ang{24.5} 时的年平均日射量，
+后者比前者增长了百分之几？
+\end{exercise}
+% ledger: nasa:milank-detail, earth:ecc
+
+\begin{exercise}[$\star\star$]\label{exo:b2:orbital-forcing:5}
+（a）精确计算今日与 \num{116000} 年前夏至点处的距离因子 $(a/r)^2$，
+（取 $e = 0.043988$，$\varpi = \ang{92.71}$），并与近似式 $1 -
+2e\sin\varpi$ 作比较。（b）计算冬至点处的两者。（c）为何 \num{116000}
+年前的近似效果更差？
+\end{exercise}
+% ledger: berger91:rows
+
+\begin{exercise}[$\star\star$]\label{exo:b2:orbital-forcing:6}
+逐步重现 \cref{ex:b2:orbital-forcing:today} 的计算：北纬 \ang{65} 处
+夏至日的日落时角、昼长、平均距离处的日射量，以及
+今日的日射量。
+\end{exercise}
+% ledger: berger91:rows
+
+\begin{exercise}[$\star\star$]\label{exo:b2:orbital-forcing:7}
+（a）利用 $\mathrm dt = T(r/a)^2\,\mathrm d\lambda/(2\pi\sqrt{1 - e^2})$ 及 $(r/a)^2 \approx 1 +
+2e\cos(\lambda - \varpi)$，证明从三月分点到九月分点的半年时长约为
+$T/2 + (2T/\pi)\,e\sin\varpi$。（b）计算今日它比另一半年
+多出多少天。（c）比较北半球夏季比冬季多出的 4.5 天，
+以及春季比秋季多出的 3 天。
+\end{exercise}
+% ledger: nasa:milank-detail, berger91:rows
+
+\begin{exercise}[$\star\star$]\label{exo:b2:orbital-forcing:8}
+过去一百万年间，偏心率在 \num{0.0046} 至 \num{0.0565} 之间变化。（a）计算
+两个极值处的全球年平均日射量 $S_0/(4\sqrt{1 - e^2})$。（b）轨道使其改变了多少，
+分别以 \unit{W.m^{-2}} 与百分数表示？（c）与北纬 \ang{65} 处
+七月中旬日射量的变化范围 388 至 \qty{497}{W.m^{-2}} 作比较。
+\end{exercise}
+% ledger: data:b4-orbital
+
+\begin{exercise}[$\star\star$]\label{exo:b2:orbital-forcing:9}
+利用滞后模型，取 $\tau = \qty{10}{ka}$，计算
+周期分别为 23、41 和 \num{100} 千年的正弦强迫下，冰量的相对振幅与滞后；
+冰盖偏好哪一个频带，为什么？
+\end{exercise}
+
+\begin{exercise}[$\star\star\star$]\label{exo:b2:orbital-forcing:10}
+北纬 \ang{65} 处七月中旬的日射量在 \num{100000} 年周期上几乎没有功率，而
+过去 \num{700000} 年的冰量功率主要集中在该周期处。（a）证明：若强迫为 $A_1\sin
+\omega_1 t + A_2\sin\omega_2 t$，则滞后模型仅在 $\omega_1$ 与 $\omega_2$ 处响应。（b）证明
+若响应含有项 $V^2$，例如 $\mathrm dV/\mathrm dt = (V_{\mathrm{eq}} -
+V)/\tau + kV^2$，可产生频率 $\omega_1 - \omega_2$ 与 $\omega_1 + \omega_2$，
+方法是将线性解代入 $V^2$。（c）两个岁差项的周期分别为 \num{23.7} 与
+\num{19.0} 千年，二者拍频的周期为多少？由此对 \num{100000} 年
+旋回能得出什么结论？
+\end{exercise}
+% ledger: la04:precession, barker21:terminations
+
+\begin{exercise}[$\star\star\star$]\label{exo:b2:orbital-forcing:11}
+在北极点，极昼期间每平方米所接收的能量为 $E = \int S_0(a/r)^2
+\sin\delta\,\mathrm dt$，积分区间为 $\delta > 0$ 的半年。（a）
+利用 \cref{prop:b2:orbital-forcing:annual} 的证明，证明 $E = S_0T\sin\varepsilon/(\pi\sqrt{1 - e^2})$。（b）计算
+$E$（单位 \unit{GJ.m^{-2}}），取 $\varepsilon = \ang{22.1}$ 与 \ang{24.5}，$e = 0.0167$，$T$ =
+365.25 天。（c）$E$ 中不含岁差，为何它仍能改变
+冰盖的熔化？
+\end{exercise}
+% ledger: nasa:milank-detail
+
+\begin{exercise}[$\star\star\star$]\label{exo:b2:orbital-forcing:12}
+（a）计算二氧化碳浓度从 \qty{189.7}{ppm} 升至
+\qty{279.4}{ppm} 时的辐射强迫，取每次加倍 \qty{3.93}{W.m^{-2}} 并采用对数律。（b）末次盛\omterm{def:b2:orbital-forcing:glacials}{冰期}与末次\omterm{def:b2:orbital-forcing:glacials}{间冰期}给定的浓度范围分别为
+188 至 \qty{194}{ppm} 与 266 至
+\qty{282}{ppm}，求它们允许的最小与最大强迫。（c）与
+\cref{exo:b2:orbital-forcing:8} 中全球年平均日射量的变化，以及
+北纬 \ang{65} 夏季日射量的摆幅相比较。哪一个是触发因素，哪一个是放大因素？
+\end{exercise}
+% ledger: data:b4-proxies-co2, ipcc:fig2-34, ipcc:erf-2xco2, ipcc:log-co2, data:b4-orbital
+
+\begin{problem}[{周末问题——北纬 \ang{65} 处的日照}]\label{pb:b2:orbital-forcing:1}
+末次\omterm{def:b2:orbital-forcing:glacials}{间冰期}约在 \num{116000} 年前结束。当时北方大冰盖所在纬度的夏季
+接收了多少日照，与今天相比如何？请利用
+练习中的数据。表中给出：\num{116000} 年前，$e = 0.0440$，$\varpi = \ang{92.7}$，
+$\varepsilon = \ang{22.52}$；今天按相同方式取整，$e = 0.0172$，$\varpi = \ang{101.4}$，
+$\varepsilon = \ang{23.45}$。
+
+\medskip\noindent\textbf{第一部分——当时与今天的轨道。}
+\begin{enumerate}
+  \item 计算当时与今天的\omterm{def:b2:orbital-forcing:elements}{气候岁差}。
+  \item 以 $a$ 为单位，计算当时与今天的近日点距离和远日点距离。
+  \item 当时与今天，地球处于近日点时太阳的经度为多少？靠近哪个至日？
+  \item 当时与今天，近日点的日照强度是远日点的多少倍？
+  \item 当时的黄赤交角比今天大还是小？这对
+        高纬度地区的夏季意味着什么？
+  \item 计算当时与今天的全球年平均日射量。该差异是否显著？
+\end{enumerate}
+
+\medskip\noindent\textbf{第二部分——夏至时的日地距离。}
+\begin{enumerate}[resume]
+  \item 由\cref{prop:b2:orbital-forcing:distance}可证，夏至时 $r/a = (1 -
+        e^2)/(1 - e\sin\varpi)$。
+  \item 计算当时与今天夏至时的 $r/a$。
+  \item 计算当时与今天的 $(a/r)^2$。
+  \item 与近似式 $1 - 2e\sin\varpi$ 相比较。
+  \item 当时与今天，夏至时的日照比在平均距离处弱了百分之几？
+\end{enumerate}
+
+\medskip\noindent\textbf{第三部分——北纬 \ang{65} 处的日照。}
+\begin{enumerate}[resume]
+  \item 给出当时与今天夏至时太阳的赤纬。
+  \item 计算当时与今天该日北纬 \ang{65} 处日落的时角。
+  \item 推算该日的白昼长度。
+  \item 计算平均距离处的日平均日射量。
+  \item 计算当时与今天的日平均日射量。
+  \item 表中给出七月中旬的数值为 397.60 与 \qty{426.76}{W.m^{-2}}。为什么
+        夏至时的数值更高？
+  \item 在当时与今天的差异中，黄赤交角与距离哪一个影响更大？
+\end{enumerate}
+
+\medskip\noindent\textbf{第四部分——冰盖的响应。}
+\begin{enumerate}[resume]
+  \item 在 $\tau = \qty{10}{ka}$ 的滞后模型中，冰盖对 $V_{\mathrm{eq}}$ 的突然改变，
+        经过 5、10 与 \qty{20}{ka} 后已达到其中的多大比例？
+  \item 北纬 \ang{65} 处的六月日射量，由约 \num{128000} 年前的最大值降至
+        \num{116000} 年前的最小值，即半个岁差周期。若周期为
+        \qty{23}{ka} 的正弦曲线，冰盖跟随强迫的多大比例、滞后多久？
+  \item 为何冰盖无法在一个岁差周期内达到
+        低夏季日射量所能维持的规模？
+  \item 冰盖积累至末次盛\omterm{def:b2:orbital-forcing:glacials}{冰期}用了约 \num{90000} 年，而
+        融化用了约 \num{10000} 年。为何滞后模型无法产生这种不对称性？
+  \item 二氧化碳浓度在末次\omterm{def:b2:orbital-forcing:glacials}{间冰期}介于 266 与 \qty{282}{ppm} 之间，
+        在末次盛\omterm{def:b2:orbital-forcing:glacials}{冰期}介于 188 与 \qty{194}{ppm} 之间。二氧化碳如何
+        帮助区域性的日照变化转变为全球性的气候变化？
+  \item 总结：北纬 \ang{65} 处夏至日的日平均日射量，在
+        末次\omterm{def:b2:orbital-forcing:glacials}{间冰期}结束时（\num{116000} 年前）为多少？
+\end{enumerate}
+\end{problem}
+% ledger: berger91:rows, berger91:readme, data:b4-orbital, ipcc:ref-periods, ipcc:fig2-34, barker21:terminations
